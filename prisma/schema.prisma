@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  stores        Store[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Store {
+  id            String    @id @default(cuid())
+  name          String
+  domain        String?
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  platform      String    @default("shopify")
+  accessToken   String?
+  products      Product[]
+  orders        Order[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Product {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  price          Float
+  compareAtPrice Float?
+  costPrice      Float
+  sku            String?
+  barcode        String?
+  inventory      Int       @default(0)
+  images         String[]
+  category       String?
+  tags           String[]
+  supplierId     String
+  supplier       Supplier  @relation(fields: [supplierId], references: [id])
+  storeId        String
+  store          Store     @relation(fields: [storeId], references: [id])
+  variants       ProductVariant[]
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model ProductVariant {
+  id              String    @id @default(cuid())
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  title           String
+  sku             String?
+  price           Float
+  compareAtPrice  Float?
+  costPrice       Float
+  inventory       Int       @default(0)
+  options         Json
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Supplier {
+  id                String    @id @default(cuid())
+  name              String
+  email             String    @unique
+  phone             String?
+  website           String?
+  rating            Float     @default(0)
+  fulfillmentSpeed  Float     @default(0)
+  qualityScore      Float     @default(0)
+  communicationScore Float     @default(0)
+  products          Product[]
+  orders            Order[]
+  status            String    @default("active")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model Order {
+  id                String    @id @default(cuid())
+  orderNumber       String    @unique
+  customerId        String
+  customer          Customer  @relation(fields: [customerId], references: [id])
+  storeId           String
+  store             Store     @relation(fields: [storeId], references: [id])
+  items             OrderItem[]
+  subtotal          Float
+  tax               Float
+  shipping          Float
+  total             Float
+  status            String
+  shippingAddressId String
+  shippingAddress   Address   @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  billingAddressId  String
+  billingAddress    Address   @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  paymentStatus     String
+  fulfillmentStatus String
+  trackingNumber    String?
+  notes             String?
+  supplierId        String
+  supplier          Supplier  @relation(fields: [supplierId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model OrderItem {
+  id          String    @id @default(cuid())
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id])
+  productId   String
+  variantId   String?
+  quantity    Int
+  price       Float
+  cost        Float
+  profit      Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Customer {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  firstName   String
+  lastName    String
+  phone       String?
+  orders      Order[]
+  addresses   Address[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Address {
+  id              String    @id @default(cuid())
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  firstName       String
+  lastName        String
+  company         String?
+  address1        String
+  address2        String?
+  city            String
+  state           String
+  postalCode      String
+  country         String
+  phone           String?
+  shippingOrders  Order[]   @relation("ShippingAddress")
+  billingOrders   Order[]   @relation("BillingAddress")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}

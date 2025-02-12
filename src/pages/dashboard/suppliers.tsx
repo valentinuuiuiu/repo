@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { SupplierManagementService } from "@/lib/suppliers";
 import {
   Table,
   TableBody,
@@ -14,13 +13,36 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star } from "lucide-react";
 
-const supplierService = new SupplierManagementService();
+const mockSuppliers = [
+  {
+    id: "1",
+    name: "Tech Supplies Inc",
+    email: "sales@techsupplies.com",
+    rating: 4.5,
+    status: "active",
+    _count: {
+      products: 150,
+      orders: 1200,
+    },
+  },
+  {
+    id: "2",
+    name: "Global Gadgets",
+    email: "info@globalgadgets.com",
+    rating: 4.2,
+    status: "active",
+    _count: {
+      products: 80,
+      orders: 800,
+    },
+  },
+];
 
 export default function Suppliers() {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery(["suppliers", page], () =>
-    Promise.resolve(mockData.suppliers),
+    Promise.resolve(mockSuppliers),
   );
 
   if (isLoading) return <div>Loading...</div>;

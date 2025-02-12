@@ -1,27 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import { analyticsService } from "@/lib/analytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// Simple chart implementation without external dependencies
-const SimpleBarChart = ({ data }: { data: any[] }) => (
-  <div className="relative h-[300px] w-full">
-    {data.map((item, index) => (
-      <div
-        key={index}
-        className="absolute bottom-0 bg-blue-500 w-8 transition-all duration-500"
-        style={{
-          height: `${(item.total_sales / Math.max(...data.map((d) => d.total_sales))) * 100}%`,
-          left: `${(index / data.length) * 100}%`,
-        }}
-      />
-    ))}
-  </div>
-);
 
 export default function Analytics() {
   const { data, isLoading } = useQuery(["analytics"], () =>
-    analyticsService.getDashboardStats("store_id", {
-      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      end: new Date(),
+    Promise.resolve({
+      totalOrders: 1250,
+      totalRevenue: 125000,
+      totalProfit: 45000,
+      averageOrderValue: 100,
+      salesByDay: Array.from({ length: 30 }, (_, i) => ({
+        date: new Date(Date.now() - (30 - i) * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+        total_sales: Math.floor(Math.random() * 10000),
+      })),
     }),
   );
 
@@ -75,7 +67,18 @@ export default function Analytics() {
           <CardTitle>Sales Over Time</CardTitle>
         </CardHeader>
         <CardContent>
-          <SimpleBarChart data={data?.salesByDay || []} />
+          <div className="h-[300px] relative">
+            {data?.salesByDay.map((day, i) => (
+              <div
+                key={day.date}
+                className="absolute bottom-0 bg-blue-500 w-6"
+                style={{
+                  height: `${(day.total_sales / 10000) * 100}%`,
+                  left: `${(i / 30) * 100}%`,
+                }}
+              />
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

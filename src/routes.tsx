@@ -7,6 +7,8 @@ import Suppliers from "./pages/dashboard/suppliers";
 import AdminDashboard from "./pages/admin/dashboard";
 import About from "./pages/about";
 import Layout from "./components/layout/Layout";
+import Products from "./pages/dashboard/products";
+import Settings from "./pages/dashboard/settings";
 
 export const router = createBrowserRouter([
   {
@@ -42,6 +44,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/products",
+    element: (
+      <Layout>
+        <Products />
+      </Layout>
+    ),
+  },
+  {
     path: "/orders",
     element: (
       <Layout>
@@ -62,6 +72,14 @@ export const router = createBrowserRouter([
     element: (
       <Layout>
         <Suppliers />
+      </Layout>
+    ),
+  },
+  {
+    path: "/settings",
+    element: (
+      <Layout>
+        <Settings />
       </Layout>
     ),
   },

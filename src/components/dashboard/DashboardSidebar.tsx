@@ -23,16 +23,18 @@ interface SidebarItem {
   label: string;
   href: string;
   isActive?: boolean;
-path: string;
+  path: string;
 }
 
 interface DashboardSidebarProps {
-  items?: SidebarItem[];
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
 
 const DashboardSidebar = ({
+  collapsed = false,
+  onToggleCollapse = () => {},
+}: DashboardSidebarProps) => {
   const location = useLocation();
   const items = [
     {
@@ -41,43 +43,41 @@ const DashboardSidebar = ({
       href: "/dashboard",
       path: "/dashboard",
     },
-    { 
-      icon: <Package size={20} />, 
-      label: "Products", 
+    {
+      icon: <Package size={20} />,
+      label: "Products",
       href: "/products",
-      path: "/products"
+      path: "/products",
     },
-    { 
-      icon: <ShoppingCart size={20} />, 
-      label: "Orders", 
+    {
+      icon: <ShoppingCart size={20} />,
+      label: "Orders",
       href: "/orders",
-      path: "/orders"
+      path: "/orders",
     },
-    { 
-      icon: <BarChart3 size={20} />, 
-      label: "Analytics", 
+    {
+      icon: <BarChart3 size={20} />,
+      label: "Analytics",
       href: "/analytics",
-      path: "/analytics"
+      path: "/analytics",
     },
-    { 
-      icon: <Users size={20} />, 
-      label: "Suppliers", 
+    {
+      icon: <Users size={20} />,
+      label: "Suppliers",
       href: "/suppliers",
-      path: "/suppliers"
+      path: "/suppliers",
     },
-    { 
-      icon: <Settings size={20} />, 
-      label: "Settings", 
+    {
+      icon: <Settings size={20} />,
+      label: "Settings",
       href: "/settings",
-      path: "/settings"
+      path: "/settings",
     },
-  ].map(item => ({
+  ].map((item) => ({
     ...item,
-    isActive: location.pathname === item.path
-  })),
-  collapsed = false,
-  onToggleCollapse = () => {},
-}: DashboardSidebarProps) => {
+    isActive: location.pathname === item.path,
+  }));
+
   return (
     <div
       className={cn(

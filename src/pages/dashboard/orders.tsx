@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { orderService } from "@/lib/api/orders";
 import {
   Table,
   TableBody,
@@ -13,11 +12,38 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+const mockOrders = [
+  {
+    id: "1",
+    orderNumber: "ORD-001",
+    customer: {
+      firstName: "John",
+      lastName: "Doe",
+      email: "john@example.com",
+    },
+    status: "processing",
+    total: 299.99,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    orderNumber: "ORD-002",
+    customer: {
+      firstName: "Jane",
+      lastName: "Smith",
+      email: "jane@example.com",
+    },
+    status: "completed",
+    total: 199.99,
+    createdAt: new Date().toISOString(),
+  },
+];
+
 export default function Orders() {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery(["orders", page], () =>
-    Promise.resolve({ orders: mockData.orders }),
+    Promise.resolve({ orders: mockOrders }),
   );
 
   if (isLoading) return <div>Loading...</div>;
@@ -48,7 +74,13 @@ export default function Orders() {
                     {order.customer.firstName} {order.customer.lastName}
                   </TableCell>
                   <TableCell>
-                    <Badge>{order.status}</Badge>
+                    <Badge
+                      variant={
+                        order.status === "completed" ? "default" : "secondary"
+                      }
+                    >
+                      {order.status}
+                    </Badge>
                   </TableCell>
                   <TableCell>${order.total.toFixed(2)}</TableCell>
                   <TableCell>

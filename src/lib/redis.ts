@@ -1,9 +1,15 @@
-import Redis from "ioredis";
+import { createClient } from '@redis/client';
 
-const redis = new Redis({
-  host: "localhost",
-  port: 6379,
+const redis = createClient({
+  socket: {
+    host: 'localhost',
+    port: 6379
+  }
 });
+
+redis.on('error', err => console.log('Redis Client Error', err));
+
+await redis.connect();
 
 export const redisClient = {
   // Product related operations
@@ -75,7 +81,7 @@ export const redisClient = {
   },
 
   async addToRevenue(amount: number) {
-    return redis.incrby("stats:total_revenue", amount);
+    return redis.incrBy("stats:total_revenue", amount);
   },
 
   async getAnalytics() {
@@ -92,6 +98,6 @@ export const redisClient = {
 
   // Cache management
   async clearCache() {
-    await redis.flushall();
+    await redis.flushAll();
   },
 };

@@ -1,4 +1,4 @@
-import { prisma } from "../prisma";
+import { redisClient } from "../redis";
 import { Product } from "@prisma/client";
 
 export const productService = {
@@ -25,54 +25,44 @@ export const productService = {
       limit = 20,
     } = params;
 
-    const where: any = {};
+    let products = await redisClient.getAllProducts();
 
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ];
-    }
+    // Apply filters
+    products = products.filter((product) => {
+      if (
+        search &&
+        !(
+          product.title.toLowerCase().includes(search.toLowerCase()) ||
+          product.description.toLowerCase().includes(search.toLowerCase())
+        )
+      )
+        return false;
 
-    if (category) {
-      where.category = category;
-    }
+      if (category && product.category !== category) return false;
+      if (supplierId && product.supplierId !== supplierId) return false;
+      if (minPrice && product.price < minPrice) return false;
+      if (maxPrice && product.price > maxPrice) return false;
+      if (minRating && product.supplier.rating < minRating) return false;
+      if (inStock !== undefined) {
+        if (inStock && product.inventory <= 0) return false;
+        if (!inStock && product.inventory > 0) return false;
+      }
 
-    if (supplierId) {
-      where.supplierId = supplierId;
-    }
-
-    if (minPrice || maxPrice) {
-      where.price = {};
-      if (minPrice) where.price.gte = minPrice;
-      if (maxPrice) where.price.lte = maxPrice;
-    }
-
-    if (minRating) {
-      where.supplier = {
-        rating: { gte: minRating },
-      };
-    }
-
-    if (inStock !== undefined) {
-      where.inventory = inStock ? { gt: 0 } : { equals: 0 };
-    }
-
-    const products = await prisma.product.findMany({
-      where,
-      include: {
-        supplier: true,
-        variants: true,
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { createdAt: "desc" },
+      return true;
     });
 
-    const total = await prisma.product.count({ where });
+    // Sort by createdAt
+    products.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    const total = products.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
 
     return {
-      products,
+      products: products.slice(startIndex, endIndex),
       pagination: {
         page,
         limit,
@@ -82,30 +72,35 @@ export const productService = {
     };
   },
 
-  async create(data: Omit<Product, "id" | "createdAt" | "updatedAt">) {
-    return prisma.product.create({
-      data,
-      include: {
-        supplier: true,
-        variants: true,
-      },
-    });
+  async create(data: any) {
+    const id = `${Date.now()}`;
+    const product = {
+      id,
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await redisClient.setProduct(id, product);
+    return product;
   },
 
-  async update(id: string, data: Partial<Product>) {
-    return prisma.product.update({
-      where: { id },
-      data,
-      include: {
-        supplier: true,
-        variants: true,
-      },
-    });
+  async update(id: string, data: any) {
+    const product = await redisClient.getProduct(id);
+    if (!product) throw new Error("Product not found");
+
+    const updatedProduct = {
+      ...product,
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    await redisClient.setProduct(id, updatedProduct);
+    return updatedProduct;
   },
 
   async delete(id: string) {
-    return prisma.product.delete({
-      where: { id },
-    });
+    const product = await redisClient.getProduct(id);
+    if (!product) throw new Error("Product not found");
+    await redis.del(`product:${id}`);
+    return product;
   },
 };

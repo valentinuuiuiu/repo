@@ -1,4 +1,5 @@
 import React from "react";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import {
@@ -22,6 +23,7 @@ interface SidebarItem {
   label: string;
   href: string;
   isActive?: boolean;
+path: string;
 }
 
 interface DashboardSidebarProps {
@@ -31,19 +33,48 @@ interface DashboardSidebarProps {
 }
 
 const DashboardSidebar = ({
-  items = [
+  const location = useLocation();
+  const items = [
     {
       icon: <LayoutGrid size={20} />,
       label: "Dashboard",
-      href: "/",
-      isActive: true,
+      href: "/dashboard",
+      path: "/dashboard",
     },
-    { icon: <Package size={20} />, label: "Products", href: "/products" },
-    { icon: <ShoppingCart size={20} />, label: "Orders", href: "/orders" },
-    { icon: <BarChart3 size={20} />, label: "Analytics", href: "/analytics" },
-    { icon: <Users size={20} />, label: "Suppliers", href: "/suppliers" },
-    { icon: <Settings size={20} />, label: "Settings", href: "/settings" },
-  ],
+    { 
+      icon: <Package size={20} />, 
+      label: "Products", 
+      href: "/products",
+      path: "/products"
+    },
+    { 
+      icon: <ShoppingCart size={20} />, 
+      label: "Orders", 
+      href: "/orders",
+      path: "/orders"
+    },
+    { 
+      icon: <BarChart3 size={20} />, 
+      label: "Analytics", 
+      href: "/analytics",
+      path: "/analytics"
+    },
+    { 
+      icon: <Users size={20} />, 
+      label: "Suppliers", 
+      href: "/suppliers",
+      path: "/suppliers"
+    },
+    { 
+      icon: <Settings size={20} />, 
+      label: "Settings", 
+      href: "/settings",
+      path: "/settings"
+    },
+  ].map(item => ({
+    ...item,
+    isActive: location.pathname === item.path
+  })),
   collapsed = false,
   onToggleCollapse = () => {},
 }: DashboardSidebarProps) => {
@@ -81,10 +112,10 @@ const DashboardSidebar = ({
                   )}
                   asChild
                 >
-                  <a href={item.href} className="flex items-center">
+                  <Link to={item.href} className="flex items-center">
                     {item.icon}
                     {!collapsed && <span className="ml-3">{item.label}</span>}
-                  </a>
+                  </Link>
                 </Button>
               </TooltipTrigger>
               {collapsed && (

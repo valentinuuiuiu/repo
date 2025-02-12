@@ -5,34 +5,72 @@ import Orders from "./pages/dashboard/orders";
 import Analytics from "./pages/dashboard/analytics";
 import Suppliers from "./pages/dashboard/suppliers";
 import AdminDashboard from "./pages/admin/dashboard";
+import About from "./pages/about";
+import Layout from "./components/layout/Layout";
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home />,
+    element: (
+      <Layout>
+        <Home />
+      </Layout>
+    ),
   },
   {
     path: "/login",
-    element: <Login />,
+    element: (
+      <Layout showSidebar={false}>
+        <Login />
+      </Layout>
+    ),
+  },
+  {
+    path: "/about",
+    element: (
+      <Layout showSidebar={false}>
+        <About />
+      </Layout>
+    ),
   },
   {
     path: "/dashboard",
-    element: <Home />,
+    element: (
+      <Layout>
+        <Home />
+      </Layout>
+    ),
   },
   {
     path: "/orders",
-    element: <Orders />,
+    element: (
+      <Layout>
+        <Orders />
+      </Layout>
+    ),
   },
   {
     path: "/analytics",
-    element: <Analytics />,
+    element: (
+      <Layout>
+        <Analytics />
+      </Layout>
+    ),
   },
   {
     path: "/suppliers",
-    element: <Suppliers />,
+    element: (
+      <Layout>
+        <Suppliers />
+      </Layout>
+    ),
   },
   {
     path: "/admin",
-    element: <AdminDashboard />,
+    element: (
+      <Layout>
+        <AdminDashboard />
+      </Layout>
+    ),
   },
 ]);

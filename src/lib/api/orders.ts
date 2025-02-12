@@ -1,4 +1,4 @@
-import { prisma } from "../prisma";
+import { redisClient } from "../redis";
 import { Order, OrderItem } from "@prisma/client";
 
 export const orderService = {
@@ -21,48 +21,33 @@ export const orderService = {
       limit = 20,
     } = params;
 
-    const where: any = {};
+    let orders = await redisClient.getAllOrders();
 
-    if (status) {
-      where.status = status;
-    }
+    // Apply filters
+    orders = orders.filter((order) => {
+      if (status && order.status !== status) return false;
+      if (customerId && order.customerId !== customerId) return false;
+      if (supplierId && order.supplierId !== supplierId) return false;
 
-    if (customerId) {
-      where.customerId = customerId;
-    }
+      const orderDate = new Date(order.createdAt);
+      if (startDate && orderDate < startDate) return false;
+      if (endDate && orderDate > endDate) return false;
 
-    if (supplierId) {
-      where.supplierId = supplierId;
-    }
-
-    if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = startDate;
-      if (endDate) where.createdAt.lte = endDate;
-    }
-
-    const orders = await prisma.order.findMany({
-      where,
-      include: {
-        customer: true,
-        supplier: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
-        shippingAddress: true,
-        billingAddress: true,
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { createdAt: "desc" },
+      return true;
     });
 
-    const total = await prisma.order.count({ where });
+    // Sort by createdAt
+    orders.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    const total = orders.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
 
     return {
-      orders,
+      orders: orders.slice(startIndex, endIndex),
       pagination: {
         page,
         limit,
@@ -72,52 +57,47 @@ export const orderService = {
     };
   },
 
-  async create(data: {
-    order: Omit<Order, "id" | "createdAt" | "updatedAt">;
-    items: Omit<OrderItem, "id" | "orderId" | "createdAt" | "updatedAt">[];
-  }) {
-    return prisma.order.create({
-      data: {
-        ...data.order,
-        items: {
-          create: data.items,
-        },
-      },
-      include: {
-        customer: true,
-        supplier: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
-        shippingAddress: true,
-        billingAddress: true,
-      },
-    });
+  async create(data: any) {
+    const id = `${Date.now()}`;
+    const order = {
+      id,
+      ...data.order,
+      items: data.items.map((item: any) => ({
+        id: `${Date.now()}-${Math.random()}`,
+        orderId: id,
+        ...item,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await redisClient.setOrder(id, order);
+    await redisClient.incrementOrderCount();
+    await redisClient.addToRevenue(order.total);
+
+    return order;
   },
 
-  async update(id: string, data: Partial<Order>) {
-    return prisma.order.update({
-      where: { id },
-      data,
-      include: {
-        customer: true,
-        supplier: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
-        shippingAddress: true,
-        billingAddress: true,
-      },
-    });
+  async update(id: string, data: any) {
+    const order = await redisClient.getOrder(id);
+    if (!order) throw new Error("Order not found");
+
+    const updatedOrder = {
+      ...order,
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await redisClient.setOrder(id, updatedOrder);
+    return updatedOrder;
   },
 
   async delete(id: string) {
-    return prisma.order.delete({
-      where: { id },
-    });
+    const order = await redisClient.getOrder(id);
+    if (!order) throw new Error("Order not found");
+    await redis.del(`order:${id}`);
+    return order;
   },
 };

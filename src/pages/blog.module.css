@@ -1,0 +1,9 @@
+.container {
+  padding: 20px;
+  background-color: lightblue;
+}
+
+.heading {
+  font-size: 24px;
+  margin-bottom: 20px;
+}

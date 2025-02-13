@@ -1,7 +1,7 @@
 import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import { nodeStdlibBrowser } from "vite-plugin-node-stdlib-browser";
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 const conditionalPlugins: [string, Record<string, any>][] = [];
 
@@ -16,16 +16,26 @@ export default defineConfig({
   },
   optimizeDeps: {
     entries: ["src/main.tsx", "src/tempobook/**/*"],
-    exclude: ['ioredis'],
+    exclude: ['ioredis', 'redis'],
   },
   plugins: [
-    nodeStdlibBrowser(),
+    nodePolyfills({
+      protocolImports: true,
+    }),
     react({
       plugins: conditionalPlugins,
     }),
   ],
+  define: {
+    global: 'globalThis',
+  },
   server: {
     // @ts-ignore
     allowedHosts: true,
+  },
+  build: {
+    rollupOptions: {
+      external: ['redis'],
+    },
   }
 });

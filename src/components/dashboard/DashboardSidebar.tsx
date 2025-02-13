@@ -138,9 +138,12 @@ const DashboardSidebar = ({
                   "w-full justify-start",
                   collapsed ? "justify-center" : "",
                 )}
+                asChild
               >
-                <HelpCircle size={20} />
-                {!collapsed && <span className="ml-3">Help & Support</span>}
+                <Link to="/help-support" className="flex items-center">
+                  <HelpCircle size={20} />
+                  {!collapsed && <span className="ml-3">Help & Support</span>}
+                </Link>
               </Button>
             </TooltipTrigger>
             {collapsed && (

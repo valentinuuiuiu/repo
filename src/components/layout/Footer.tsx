@@ -34,7 +34,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="hover:text-gray-900">
+                <Link to="/contact-us" className="hover:text-gray-900">
                   Contact
                 </Link>
               </li>
@@ -49,7 +49,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/docs" className="hover:text-gray-900">
+                <Link to="/documentation" className="hover:text-gray-900">
                   Documentation
                 </Link>
               </li>
@@ -73,8 +73,9 @@ export default function Footer() {
                   href="https://github.com"
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="GitHub"
                 >
-                  <Github className="h-5 w-5" />
+                  <Github className="h-5 w-5" aria-label="GitHub"/>
                 </a>
               </Button>
               <Button variant="ghost" size="icon" asChild>

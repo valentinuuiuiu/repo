@@ -14,10 +14,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    "strict": false,
+    "strict": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src"],
   "exclude": ["src/tempobook"],

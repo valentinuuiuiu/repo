@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -42,12 +41,6 @@ const mockOrders = [
 export default function Orders() {
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery(["orders", page], () =>
-    Promise.resolve({ orders: mockOrders }),
-  );
-
-  if (isLoading) return <div>Loading...</div>;
-
   return (
     <div className="p-6 space-y-6">
       <Card>
@@ -67,7 +60,7 @@ export default function Orders() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data?.orders.map((order) => (
+              {mockOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell>{order.orderNumber}</TableCell>
                   <TableCell>

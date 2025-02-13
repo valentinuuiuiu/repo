@@ -1,32 +1,54 @@
-import { createClient } from '@redis/client';
+type RedisClientType = import('redis').RedisClientType;
+type RedisClient = RedisClientType | {
+  [key: string]: any;
+  get: (key: string) => Promise<string|null>;
+  set: (key: string, value: string) => Promise<void>;
+  keys: (pattern: string) => Promise<string[]>;
+  incr: (key: string) => Promise<number>;
+  incrBy: (key: string, value: number) => Promise<number>;
+  flushAll: () => Promise<void>;
+};
 
-const redis = createClient({
-  socket: {
-    host: 'localhost',
-    port: 6379
-  }
-});
+let redisClient: RedisClient;
 
-redis.on('error', err => console.log('Redis Client Error', err));
+if (import.meta.env.SSR) {
+  // Server-side configuration
+  const { createClient } = await import('redis');
+  redisClient = createClient({
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    socket: {
+      reconnectStrategy: (retries) => Math.min(retries * 100, 10000)
+    }
+  });
 
-await redis.connect();
+  redisClient.on('error', err => console.error('Redis Client Error:', err));
+  await redisClient.connect();
+} else {
+  // Client-side mock
+  redisClient = new Proxy({}, {
+    get() {
+      throw new Error('Redis client can only be used server-side');
+    }
+  }) as RedisClient;
+}
 
-export const redisClient = {
+export { redisClient };
+export const redis = {
   // Product related operations
   async getProduct(id: string) {
-    const product = await redis.get(`product:${id}`);
+    const product = await redisClient.get(`product:${id}`);
     return product ? JSON.parse(product) : null;
   },
 
   async setProduct(id: string, product: any) {
-    await redis.set(`product:${id}`, JSON.stringify(product));
+    await redisClient.set(`product:${id}`, JSON.stringify(product));
   },
 
   async getAllProducts() {
-    const keys = await redis.keys("product:*");
+    const keys = await redisClient.keys("product:*");
     const products = await Promise.all(
       keys.map(async (key) => {
-        const product = await redis.get(key);
+        const product = await redisClient.get(key);
         return product ? JSON.parse(product) : null;
       }),
     );
@@ -35,19 +57,19 @@ export const redisClient = {
 
   // Order related operations
   async getOrder(id: string) {
-    const order = await redis.get(`order:${id}`);
+    const order = await redisClient.get(`order:${id}`);
     return order ? JSON.parse(order) : null;
   },
 
   async setOrder(id: string, order: any) {
-    await redis.set(`order:${id}`, JSON.stringify(order));
+    await redisClient.set(`order:${id}`, JSON.stringify(order));
   },
 
   async getAllOrders() {
-    const keys = await redis.keys("order:*");
+    const keys = await redisClient.keys("order:*");
     const orders = await Promise.all(
       keys.map(async (key) => {
-        const order = await redis.get(key);
+        const order = await redisClient.get(key);
         return order ? JSON.parse(order) : null;
       }),
     );
@@ -56,19 +78,19 @@ export const redisClient = {
 
   // Supplier related operations
   async getSupplier(id: string) {
-    const supplier = await redis.get(`supplier:${id}`);
+    const supplier = await redisClient.get(`supplier:${id}`);
     return supplier ? JSON.parse(supplier) : null;
   },
 
   async setSupplier(id: string, supplier: any) {
-    await redis.set(`supplier:${id}`, JSON.stringify(supplier));
+    await redisClient.set(`supplier:${id}`, JSON.stringify(supplier));
   },
 
   async getAllSuppliers() {
-    const keys = await redis.keys("supplier:*");
+    const keys = await redisClient.keys("supplier:*");
     const suppliers = await Promise.all(
       keys.map(async (key) => {
-        const supplier = await redis.get(key);
+        const supplier = await redisClient.get(key);
         return supplier ? JSON.parse(supplier) : null;
       }),
     );
@@ -77,17 +99,17 @@ export const redisClient = {
 
   // Analytics related operations
   async incrementOrderCount() {
-    return redis.incr("stats:order_count");
+    return redisClient.incr("stats:order_count");
   },
 
   async addToRevenue(amount: number) {
-    return redis.incrBy("stats:total_revenue", amount);
+    return redisClient.incrBy("stats:total_revenue", amount);
   },
 
   async getAnalytics() {
     const [orderCount, totalRevenue] = await Promise.all([
-      redis.get("stats:order_count"),
-      redis.get("stats:total_revenue"),
+      redisClient.get("stats:order_count"),
+      redisClient.get("stats:total_revenue"),
     ]);
 
     return {
@@ -98,6 +120,6 @@ export const redisClient = {
 
   // Cache management
   async clearCache() {
-    await redis.flushAll();
+    await redisClient.flushAll();
   },
 };

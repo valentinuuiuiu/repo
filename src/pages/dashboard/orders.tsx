@@ -1,95 +1,90 @@
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from 'react';
+import PageLayout from '@/components/layout/PageLayout';
+import { useTranslation } from 'react-i18next';
 
-const mockOrders = [
-  {
-    id: "1",
-    orderNumber: "ORD-001",
-    customer: {
-      firstName: "John",
-      lastName: "Doe",
-      email: "john@example.com",
-    },
-    status: "processing",
-    total: 299.99,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    orderNumber: "ORD-002",
-    customer: {
-      firstName: "Jane",
-      lastName: "Smith",
-      email: "jane@example.com",
-    },
-    status: "completed",
-    total: 199.99,
-    createdAt: new Date().toISOString(),
-  },
-];
+const OrdersPage: React.FC = () => {
+  const { t } = useTranslation();
 
-export default function Orders() {
-  const [page, setPage] = useState(1);
+  // Mock order data
+  const [orders, setOrders] = useState([
+    { id: 1, customer: 'John Doe', date: '2024-02-13', total: 100, status: 'Pending' },
+    { id: 2, customer: 'Jane Smith', date: '2024-02-12', total: 200, status: 'Shipped' },
+    { id: 3, customer: 'Alice Brown', date: '2024-02-11', total: 150, status: 'Delivered' },
+  ]);
+
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const handleFilter = (status: string) => {
+    setFilterStatus(status);
+  };
+
+  const sortedOrders = [...orders].sort((a, b) => {
+    const order = sortOrder === 'asc' ? 1 : -1;
+    if (sortBy === 'date') {
+      return (a.date > b.date ? 1 : -1) * order;
+    } else if (sortBy === 'customer') {
+      return (a.customer > b.customer ? 1 : -1) * order;
+    } else {
+      return (a.total - b.total) * order;
+    }
+  });
+
+  const filteredOrders = filterStatus === 'all' ? sortedOrders : sortedOrders.filter(order => order.status === filterStatus);
 
   return (
-    <div className="p-6 space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>{order.orderNumber}</TableCell>
-                  <TableCell>
-                    {order.customer.firstName} {order.customer.lastName}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        order.status === "completed" ? "default" : "secondary"
-                      }
-                    >
-                      {order.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>${order.total.toFixed(2)}</TableCell>
-                  <TableCell>
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+    <PageLayout title={t('Orders')}>
+      <div>
+        <h1>{t('Orders')}</h1>
+
+        <div>
+          <button onClick={() => handleSort('date')}>{t('orders.sortByDate')}</button>
+          <button onClick={() => handleSort('customer')}>{t('orders.sortByCustomer')}</button>
+          <button onClick={() => handleSort('total')}>{t('orders.sortByTotal')}</button>
+        </div>
+
+        <div>
+          <button onClick={() => handleFilter('all')}>{t('orders.all')}</button>
+          <button onClick={() => handleFilter('Pending')}>{t('orders.pending')}</button>
+          <button onClick={() => handleFilter('Shipped')}>{t('orders.shipped')}</button>
+          <button onClick={() => handleFilter('Delivered')}>{t('orders.delivered')}</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Total</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredOrders.map((order) => (
+              <tr key={order.id}>
+                <td>{order.id}</td>
+                <td>{order.customer}</td>
+                <td>{order.date}</td>
+                <td>{order.total}</td>
+                <td>{order.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </PageLayout>
   );
-}
+};
+
+export default OrdersPage;

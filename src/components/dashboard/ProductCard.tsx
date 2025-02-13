@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { TFunction } from "i18next";
 
 interface ProductCardProps {
   title?: string;
@@ -17,6 +18,7 @@ interface ProductCardProps {
   supplierRating?: number;
   inStock?: boolean;
   category?: string;
+  t: TFunction<"translation", undefined>;
 }
 
 const ProductCard = ({
@@ -26,7 +28,9 @@ const ProductCard = ({
   supplierRating = 4.5,
   inStock = true,
   category = "Electronics",
+  t,
 }: ProductCardProps) => {
+  console.log("t prop in ProductCard:", typeof t);
   return (
     <Card className="w-[300px] h-[400px] bg-white overflow-hidden hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="p-0">
@@ -36,16 +40,16 @@ const ProductCard = ({
             className="absolute top-2 right-2"
             variant={inStock ? "default" : "destructive"}
           >
-            {inStock ? "In Stock" : "Out of Stock"}
+            {inStock ? t('products.inStock') : t('products.outOfStock')}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="p-4">
         <div className="mb-2">
           <Badge variant="secondary" className="mb-2">
-            {category}
+            {t(category)}
           </Badge>
-          <h3 className="font-semibold text-lg line-clamp-2">{title}</h3>
+          <h3 className="font-semibold text-lg line-clamp-2">{t(title)}</h3>
         </div>
         <div className="flex items-center justify-between mt-2">
           <span className="text-2xl font-bold">${price.toFixed(2)}</span>
@@ -61,11 +65,11 @@ const ProductCard = ({
             <TooltipTrigger asChild>
               <Button className="flex-1" variant="default">
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                Add to Store
+                {t('products.addToStore')}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Import this product to your store</p>
+              <p>{t('products.importToStore')}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -77,7 +81,7 @@ const ProductCard = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>View product analytics</p>
+              <p>{t('products.viewAnalytics')}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

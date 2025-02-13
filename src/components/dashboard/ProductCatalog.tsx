@@ -1,6 +1,7 @@
 import React from "react";
 import ProductFilters from "./ProductFilters";
 import ProductGrid from "./ProductGrid";
+import { TFunction } from "i18next";
 
 interface ProductCatalogProps {
   onSearch?: (value: string) => void;
@@ -17,6 +18,7 @@ interface ProductCatalogProps {
     category: string;
   }>;
   isLoading?: boolean;
+  t: TFunction<"translation", undefined>;
 }
 
 const ProductCatalog = ({
@@ -54,6 +56,7 @@ const ProductCatalog = ({
     },
   ],
   isLoading = false,
+  t,
 }: ProductCatalogProps) => {
   return (
     <div className="w-full h-full bg-white flex flex-col">
@@ -62,9 +65,10 @@ const ProductCatalog = ({
         onCategoryChange={onCategoryChange}
         onPriceRangeChange={onPriceRangeChange}
         onSupplierRatingChange={onSupplierRatingChange}
+        t={t}
       />
       <div className="flex-1 overflow-auto">
-        <ProductGrid products={products} isLoading={isLoading} />
+        {t && <ProductGrid products={products} isLoading={isLoading} t={t} />}
       </div>
     </div>
   );

@@ -1,102 +1,85 @@
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star } from "lucide-react";
+import React, { useState } from 'react';
+import PageLayout from '@/components/layout/PageLayout';
 
-const mockSuppliers = [
-  {
-    id: "1",
-    name: "Tech Supplies Inc",
-    email: "sales@techsupplies.com",
-    rating: 4.5,
-    status: "active",
-    _count: {
-      products: 150,
-      orders: 1200,
-    },
-  },
-  {
-    id: "2",
-    name: "Global Gadgets",
-    email: "info@globalgadgets.com",
-    rating: 4.2,
-    status: "active",
-    _count: {
-      products: 80,
-      orders: 800,
-    },
-  },
-];
+const SuppliersPage: React.FC = () => {
+  // Mock supplier data
+  const [suppliers, setSuppliers] = useState([
+    { id: 1, name: 'Supplier A', contact: 'John Doe', rating: 4, category: 'Electronics' },
+    { id: 2, name: 'Supplier B', contact: 'Jane Smith', rating: 3, category: 'Clothing' },
+    { id: 3, name: 'Supplier C', contact: 'Peter Jones', rating: 5, category: 'Home & Garden' },
+  ]);
 
-export default function Suppliers() {
-  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [filterCategory, setFilterCategory] = useState('all');
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const handleFilter = (category: string) => {
+    setFilterCategory(category);
+  };
+
+  const sortedSuppliers = [...suppliers].sort((a, b) => {
+    const order = sortOrder === 'asc' ? 1 : -1;
+    if (sortBy === 'name') {
+      return (a.name > b.name ? 1 : -1) * order;
+    } else {
+      return (a.contact > b.contact ? 1 : -1) * order;
+    }
+  });
+
+  const filteredSuppliers = filterCategory === 'all' ? sortedSuppliers : sortedSuppliers.filter(supplier => supplier.category === filterCategory);
+
 
   return (
-    <div className="p-6 space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Suppliers</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Rating</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead>Orders</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockSuppliers.map((supplier) => (
-                <TableRow key={supplier.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{supplier.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {supplier.email}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
-                      {supplier.rating.toFixed(1)}
-                    </div>
-                  </TableCell>
-                  <TableCell>{supplier._count.products}</TableCell>
-                  <TableCell>{supplier._count.orders}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        supplier.status === "active" ? "default" : "secondary"
-                      }
-                    >
-                      {supplier.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+    <PageLayout title="Suppliers">
+      <div>
+        <h1>Suppliers</h1>
+
+        <div>
+          <button onClick={() => handleSort('name')}>Sort by Name</button>
+          <button onClick={() => handleSort('contact')}>Sort by Contact</button>
+        </div>
+
+        <div>
+          <button onClick={() => handleFilter('all')}>All</button>
+          <button onClick={() => handleFilter('Electronics')}>Electronics</button>
+          <button onClick={() => handleFilter('Clothing')}>Clothing</button>
+          <button onClick={() => handleFilter('Home & Garden')}>Home & Garden</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Contact</th>
+              <th>Rating</th>
+              <th>Category</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredSuppliers.map((supplier) => (
+              <tr key={supplier.id}>
+                <td>{supplier.id}</td>
+                <td>{supplier.name}</td>
+                <td>{supplier.contact}</td>
+                <td>{supplier.rating}</td>
+                <td>{supplier.category}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </PageLayout>
   );
-}
+};
+
+export default SuppliersPage;

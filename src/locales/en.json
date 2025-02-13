@@ -1,0 +1,67 @@
+{
+  "Dashboard": "Dashboard",
+  "Products": "Products",
+  "Orders": "Orders",
+  "Suppliers": "Suppliers",
+  "Analytics": "Analytics",
+  "Settings": "Settings",
+  "Profile": "Profile",
+  "Billing": "Billing",
+  "Log out": "Log out",
+  "Notifications": "Notifications",
+  "Language": "Language",
+  "Select Language": "Select Language",
+  "English": "English",
+  "Romanian": "Romanian",
+  "analytics": {
+    "totalOrders": "Total Orders",
+    "totalRevenue": "Total Revenue",
+    "totalProfit": "Total Profit",
+    "averageOrderValue": "Average Order Value",
+     "salesOverTime": "Sales Over Time"
+   },
+   "orders": {
+    "title": "Orders",
+    "orderId": "Order ID",
+    "customer": "Customer",
+    "status": "Status",
+    "total": "Total",
+    "date": "Date",
+    "actions": "Actions",
+    "viewDetails": "View Details"
+  },
+  "termsOfService": {
+    "title": "Terms of Service"
+  },
+  "privacyPolicy": {
+    "title": "Privacy Policy"
+  },
+  "contactUs": {
+    "title": "Contact Us"
+  },
+     "helpSupport": {
+       "title": "Help & Support"
+     },
+     "products": {
+      "searchProducts": "Search products...",
+      "category": "Category",
+      "allCategories": "All Categories",
+      "electronics": "Electronics",
+      "clothing": "Clothing",
+      "homeAndGarden": "Home & Garden",
+      "beauty": "Beauty",
+      "filters": "Filters",
+      "priceRange": "Price Range",
+      "supplierRating": "Supplier Rating",
+      "selectMinRating": "Select min. rating",
+      "allRatings": "All Ratings",
+      "4Stars": "4 Stars & up",
+      "3Stars": "3 Stars & up",
+      "2Stars": "2 Stars & up",
+       "inStock": "In Stock",
+       "outOfStock": "Out of stock",
+       "addToStore": "Add to Store",
+       "importToStore": "Import to Store",
+       "viewAnalytics": "View Analytics"
+     }
+   }

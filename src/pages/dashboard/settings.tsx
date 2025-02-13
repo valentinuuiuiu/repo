@@ -1,67 +1,39 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState } from 'react';
+import PageLayout from '@/components/layout/PageLayout';
 
-export default function Settings() {
+const SettingsPage: React.FC = () => {
+  const [siteName, setSiteName] = useState('My Store');
+  const [theme, setTheme] = useState('light');
+
+  const handleSiteNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSiteName(event.target.value);
+  };
+
+  const handleThemeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setTheme(event.target.value);
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Settings</h1>
-
-      <Tabs defaultValue="profile">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Add profile settings form here */}
-              <p>Profile settings coming soon...</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="account">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Add account settings form here */}
-              <p>Account settings coming soon...</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Add notification settings form here */}
-              <p>Notification settings coming soon...</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="integrations">
-          <Card>
-            <CardHeader>
-              <CardTitle>Platform Integrations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Add integration settings form here */}
-              <p>Integration settings coming soon...</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+    <PageLayout title="Settings">
+      <div>
+        <h1>Settings</h1>
+        <form>
+          <div>
+            <label htmlFor="siteName">Site Name:</label>
+            <input type="text" id="siteName" value={siteName} onChange={handleSiteNameChange} />
+          </div>
+          <div>
+            <label htmlFor="theme">Theme:</label>
+            <select id="theme" value={theme} onChange={handleThemeChange}>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <button type="submit">Save</button>
+        </form>
+      </div>
+    </PageLayout>
   );
-}
+};
+
+export default SettingsPage;

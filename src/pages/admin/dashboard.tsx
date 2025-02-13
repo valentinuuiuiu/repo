@@ -1,13 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import styles from "./dashboard.module.css";
 
 const ADMIN_EMAIL = "ionutbaltag3@gmail.com";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeStores: 0,
+    totalRevenue: 0
+  });
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -18,6 +24,34 @@ export default function AdminDashboard() {
     };
     checkAdmin();
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [usersResponse, storesResponse, revenueResponse] = await Promise.all([
+          fetch('/api/admin/stats/users'),
+          fetch('/api/admin/stats/stores'),
+          fetch('/api/admin/stats/revenue')
+        ]);
+
+        const [usersData, storesData, revenueData] = await Promise.all([
+          usersResponse.json(),
+          storesResponse.json(),
+          revenueResponse.json()
+        ]);
+
+        setStats({
+          totalUsers: usersData.count,
+          activeStores: storesData.count,
+          totalRevenue: revenueData.amount
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <div className="p-6 space-y-6">
@@ -38,7 +72,7 @@ export default function AdminDashboard() {
                 <CardTitle>Total Users</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">0</div>
+                <div className="text-3xl font-bold">{stats.totalUsers}</div>
               </CardContent>
             </Card>
             <Card>
@@ -46,7 +80,7 @@ export default function AdminDashboard() {
                 <CardTitle>Active Stores</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">0</div>
+                <div className="text-3xl font-bold">{stats.activeStores}</div>
               </CardContent>
             </Card>
             <Card>
@@ -54,7 +88,7 @@ export default function AdminDashboard() {
                 <CardTitle>Total Revenue</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">$0.00</div>
+                <div className="text-3xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
               </CardContent>
             </Card>
           </div>

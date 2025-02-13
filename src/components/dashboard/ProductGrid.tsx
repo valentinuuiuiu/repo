@@ -1,5 +1,6 @@
 import React from "react";
 import ProductCard from "./ProductCard";
+import { TFunction } from "i18next";
 
 interface Product {
   id: string;
@@ -14,6 +15,7 @@ interface Product {
 interface ProductGridProps {
   products?: Product[];
   isLoading?: boolean;
+  t: TFunction<"translation", undefined>;
 }
 
 const ProductGrid = ({
@@ -56,6 +58,7 @@ const ProductGrid = ({
     },
   ],
   isLoading = false,
+  t,
 }: ProductGridProps) => {
   return (
     <div className="bg-gray-50 p-6">
@@ -69,6 +72,7 @@ const ProductGrid = ({
               supplierRating={product.supplierRating}
               inStock={product.inStock}
               category={product.category}
+              t={t}
             />
           </div>
         ))}

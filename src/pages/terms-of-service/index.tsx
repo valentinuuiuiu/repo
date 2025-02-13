@@ -1,12 +1,14 @@
 import React from 'react';
-import styles from '../dashboard/analytics.module.css';
+import PageLayout from '@/components/layout/PageLayout';
 
 const TermsOfServicePage: React.FC = () => {
   return (
-    <div className={styles.container}>
-      <h1 className={styles.heading}>Terms of Service</h1>
-      <p>Placeholder content for Terms of Service page.</p>
-    </div>
+    <PageLayout title="Termeni și Condiții">
+      <div>
+        <h1>Terms of Service</h1>
+        <p>These are the terms of service.</p>
+      </div>
+    </PageLayout>
   );
 };
 

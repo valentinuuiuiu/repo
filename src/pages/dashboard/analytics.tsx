@@ -1,13 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import styles from "./analytics.module.css";
+import { useTranslation } from 'react-i18next';
+import React, { useEffect } from "react";
+import i18n from '../../lib/i18n';
 
 export default function Analytics() {
+  const { t } = useTranslation();
+
   return (
     <div className={styles.container}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Total Orders</CardTitle>
+            <CardTitle>{t('analytics.totalOrders')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">1250</div>
@@ -15,7 +20,7 @@ export default function Analytics() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Total Revenue</CardTitle>
+            <CardTitle>{t('analytics.totalRevenue')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">$125,000.00</div>
@@ -23,7 +28,7 @@ export default function Analytics() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Total Profit</CardTitle>
+            <CardTitle>{t('analytics.totalProfit')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">$45,000.00</div>
@@ -31,7 +36,7 @@ export default function Analytics() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Average Order Value</CardTitle>
+            <CardTitle>{t('analytics.averageOrderValue')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">$100.00</div>
@@ -41,7 +46,7 @@ export default function Analytics() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sales Over Time</CardTitle>
+          <CardTitle>{t('analytics.salesOverTime')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className={`h-[300px] relative ${styles.chartContainer}`}>

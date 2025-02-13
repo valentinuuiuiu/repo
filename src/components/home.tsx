@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ProductCatalog from "./dashboard/ProductCatalog";
+import { useTranslation } from 'react-i18next';
 
 interface HomeProps {
   userName?: string;
@@ -13,6 +14,7 @@ const Home = ({
   notificationCount = 3,
 }: HomeProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useTranslation();
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -81,6 +83,7 @@ const Home = ({
               category: "Electronics",
             },
           ]}
+          t={t}
         />
       </main>
     </div>

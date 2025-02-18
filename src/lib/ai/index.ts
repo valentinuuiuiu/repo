@@ -47,7 +47,12 @@ export class AIAgent {
         temperature: 0.3,
       });
 
-      return JSON.parse(response.choices[0]?.message?.content || "{}");
+      try {
+        return JSON.parse(response.choices[0]?.message?.content || "{}");
+      } catch (parseError) {
+        console.error("Invalid JSON in pricing optimization response:", parseError);
+        return {};
+      }
     } catch (error) {
       console.error("Failed to optimize pricing:", error);
       throw error;

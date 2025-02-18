@@ -78,7 +78,7 @@ export class EbayIntegration {
   }
 
   async updateProduct(sku: string, updates: any) {
-    if (!this.accessToken) await this.authenticate();
+    if (!this.accessToken) {
 
     try {
       const response = await axios.put(

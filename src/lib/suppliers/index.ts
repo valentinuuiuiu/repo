@@ -55,7 +55,7 @@ export class SupplierManager {
 
   async getProductDetails(supplierId: string, productId: string) {
     const supplier = this.suppliers.get(supplierId as SupplierType);
-    if (!supplier) throw new Error(`Supplier ${supplierId} not found`);
+    if (!supplier) {
 
     return supplier.getProductDetails(productId);
   }

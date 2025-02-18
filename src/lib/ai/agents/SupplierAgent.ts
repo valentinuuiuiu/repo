@@ -10,7 +10,7 @@ export class SupplierAgent {
 
   async analyzeSupplier(supplierId: string) {
     const supplier = this.supplierManager.getSupplier(supplierId);
-    if (!supplier) throw new Error(`Supplier ${supplierId} not found`);
+    if (!supplier) {
 
     // Collect supplier performance data
     const performanceData = await this.collectPerformanceData(supplier);

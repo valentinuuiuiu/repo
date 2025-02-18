@@ -44,7 +44,12 @@ export class ChiefAgent extends BaseAgent {
       availableAgents: Array.from(this.subordinates.keys()),
     });
 
-    return JSON.parse(analysis || "{}");
+    try {
+      return JSON.parse(analysis || "{}");
+    } catch (error) {
+      console.error("Failed to parse JSON response from think():", error);
+      return {};
+    }
   }
 
   private async executeStrategy(strategy: any, task: Task) {

@@ -62,7 +62,7 @@ export class SupplierManager {
 
   async placeOrder(supplierId: string, orderData: any) {
     const supplier = this.suppliers.get(supplierId as SupplierType);
-    if (!supplier) throw new Error(`Supplier ${supplierId} not found`);
+    if (!supplier) {
 
     return supplier.placeOrder(orderData);
   }

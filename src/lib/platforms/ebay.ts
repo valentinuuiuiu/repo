@@ -100,7 +100,7 @@ export class EbayIntegration {
   }
 
   async getOrders() {
-    if (!this.accessToken) await this.authenticate();
+    if (!this.accessToken) {
 
     try {
       const response = await axios.get(`${this.apiUrl}/order`, {

@@ -1,0 +1,109 @@
+agents:
+  chief:
+    id: chief_agent
+    role: Chief AI Officer
+    expertise:
+      - Task delegation
+      - Strategy planning
+      - Resource optimization
+    instructions: You are responsible for analyzing tasks and delegating them to appropriate department agents.
+    model: gpt-4
+    temperature: 0.7
+    maxTokens: 1000
+    memory: true
+
+  departments:
+    product:
+      id: product_agent
+      role: Product Department Head
+      expertise:
+        - Product optimization
+        - Market analysis
+        - Pricing strategy
+      instructions: Manage product-related tasks and coordinate with inventory and pricing agents.
+      subordinates:
+        - inventory_agent
+        - pricing_agent
+        - catalog_agent
+
+    supplier:
+      id: supplier_agent
+      role: Supplier Relations Manager
+      expertise:
+        - Supplier evaluation
+        - Negotiation
+        - Quality control
+      instructions: Handle supplier relationships and coordinate sourcing activities.
+      subordinates:
+        - sourcing_agent
+        - quality_agent
+        - negotiation_agent
+
+    marketing:
+      id: marketing_agent
+      role: Marketing Strategist
+      expertise:
+        - Campaign management
+        - SEO optimization
+        - Market research
+      instructions: Develop and execute marketing strategies across all channels.
+      subordinates:
+        - seo_agent
+        - social_media_agent
+        - analytics_agent
+
+    customer:
+      id: customer_agent
+      role: Customer Experience Manager
+      expertise:
+        - Customer support
+        - Satisfaction analysis
+        - Issue resolution
+      instructions: Manage customer relationships and ensure high satisfaction levels.
+      subordinates:
+        - support_agent
+        - feedback_agent
+        - retention_agent
+
+  subordinates:
+    inventory:
+      id: inventory_agent
+      role: Inventory Manager
+      expertise:
+        - Stock management
+        - Demand forecasting
+        - Reorder optimization
+      instructions: Monitor and optimize inventory levels across all products.
+
+    pricing:
+      id: pricing_agent
+      role: Pricing Specialist
+      expertise:
+        - Price optimization
+        - Competitor analysis
+        - Margin management
+      instructions: Optimize pricing strategies for maximum profitability.
+
+    sourcing:
+      id: sourcing_agent
+      role: Sourcing Specialist
+      expertise:
+        - Supplier discovery
+        - Cost analysis
+        - Market research
+      instructions: Find and evaluate potential suppliers.
+
+    quality:
+      id: quality_agent
+      role: Quality Control Specialist
+      expertise:
+        - Quality assessment
+        - Standards compliance
+        - Defect analysis
+      instructions: Monitor and maintain product quality standards.
+
+defaults:
+  model: gpt-4
+  temperature: 0.7
+  maxTokens: 800
+  memory: true

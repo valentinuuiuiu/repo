@@ -3,10 +3,10 @@ import DashboardHeader from "../dashboard/DashboardHeader";
 import DashboardSidebar from "../dashboard/DashboardSidebar";
 import Footer from "./Footer";
 
-interface LayoutProps {
+type LayoutProps = {
   children: ReactNode;
   showSidebar?: boolean;
-}
+};
 
 export default function Layout({ children, showSidebar = true }: LayoutProps) {
   return (

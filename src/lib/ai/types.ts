@@ -1,44 +1,22 @@
-export type TaskType =
-  // Product Tasks
-  | "product_optimization"
-  | "product_launch"
-  | "product_pricing"
-  | "product_description"
-  // Marketing Tasks
-  | "marketing_strategy"
-  | "campaign_optimization"
-  | "ad_performance"
-  // Inventory Tasks
-  | "inventory_forecast"
-  | "stock_optimization"
-  | "reorder_planning"
-  // Supplier Tasks
-  | "supplier_evaluation"
-  | "supplier_negotiation"
-  | "supplier_risk_assessment"
-  // Customer Service Tasks
-  | "customer_inquiry"
-  | "satisfaction_analysis"
-  | "support_optimization";
+export type TaskType = 
+  | 'product_optimization'
+  | 'product_launch'
+  | 'marketing_strategy'
+  | 'inventory_forecast'
+  | 'supplier_evaluation'
+  | 'customer_inquiry'
+  | 'performance_analysis'
+  | 'market_research'
+  | 'code_maintenance';
 
 export interface Task {
   id: string;
   type: TaskType;
   data: any;
   departments: string[];
-  status:
-    | "pending"
-    | "in_progress"
-    | "needs_review"
-    | "approved"
-    | "completed"
-    | "rejected";
-  humanFeedback?: {
-    approved: boolean;
-    comments: string;
-    modifications: any;
-  };
+  status: 'pending' | 'in_progress' | 'needs_review' | 'completed' | 'failed';
   result?: any;
+  humanFeedback?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -48,4 +26,16 @@ export interface AgentInsight {
   confidence: number;
   recommendation: any;
   reasoning: string;
+  metadata?: Record<string, any>;
+}
+
+export interface AgentResponse {
+  success: boolean;
+  data: any;
+  error?: string;
+  metadata?: {
+    confidence: number;
+    processingTime: number;
+    modelUsed?: string;
+  };
 }

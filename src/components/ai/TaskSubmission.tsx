@@ -1,121 +1,135 @@
 import { useState } from "react";
-import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
-import { TaskType } from "@/lib/ai/types";
 import { aiService } from "@/lib/ai";
+import { TaskType } from "@/lib/ai/types";
+
+const DEPARTMENTS = [
+  { id: "product", label: "Product" },
+  { id: "supplier", label: "Supplier" },
+  { id: "marketing", label: "Marketing" },
+  { id: "inventory", label: "Inventory" },
+  { id: "customerService", label: "Customer Service" },
+  { id: "marketResearch", label: "Market Research" }
+];
 
 const TASK_TYPES: { value: TaskType; label: string }[] = [
   { value: "product_optimization", label: "Product Optimization" },
   { value: "product_launch", label: "Product Launch" },
   { value: "marketing_strategy", label: "Marketing Strategy" },
   { value: "inventory_forecast", label: "Inventory Forecast" },
-  // Add more task types
-];
-
-const DEPARTMENTS = [
-  { value: "product", label: "Product" },
-  { value: "marketing", label: "Marketing" },
-  { value: "inventory", label: "Inventory" },
-  { value: "supplier", label: "Supplier" },
-  { value: "customerService", label: "Customer Service" },
+  { value: "supplier_evaluation", label: "Supplier Evaluation" },
+  { value: "customer_inquiry", label: "Customer Inquiry" },
+  { value: "performance_analysis", label: "Performance Analysis" },
+  { value: "market_research", label: "Market Research" }
 ];
 
 export function TaskSubmission() {
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [taskType, setTaskType] = useState<TaskType>("product_optimization");
-  const [departments, setDepartments] = useState<string[]>([]);
-  const [data, setData] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [taskData, setTaskData] = useState("");
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
+    
     try {
-      const result = await aiService.executeTask({
+      const task = await aiService.executeTask({
         type: taskType,
-        departments,
-        data: JSON.parse(data),
+        data: JSON.parse(taskData),
+        departments: selectedDepartments,
+        priority
       });
-      console.log("Task submitted:", result);
+      
+      // Reset form on success
+      setSelectedDepartments([]);
+      setTaskData("");
+      
+      // Optionally trigger a notification or callback
     } catch (error) {
-      console.error("Error submitting task:", error);
+      console.error("Task submission failed:", error);
+      // Handle error state
+    } finally {
+      setIsSubmitting(false);
     }
-    setLoading(false);
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Submit AI Task</CardTitle>
+        <CardTitle>Submit New Task</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Task Type</Label>
-            <Select
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <label className="block text-sm font-medium">Task Type</label>
+            <select
               value={taskType}
-              onValueChange={(value) => setTaskType(value as TaskType)}
+              onChange={(e) => setTaskType(e.target.value as TaskType)}
+              className="w-full p-2 border rounded"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select task type" />
-              </SelectTrigger>
-              <SelectContent>
-                {TASK_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {TASK_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Departments</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {DEPARTMENTS.map((dept) => (
-                <div key={dept.value} className="flex items-center space-x-2">
+          <div className="space-y-4">
+            <label className="block text-sm font-medium">Priority</label>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high")}
+              className="w-full p-2 border rounded"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+
+          <div className="space-y-4">
+            <label className="block text-sm font-medium">Departments</label>
+            <div className="grid grid-cols-2 gap-4">
+              {DEPARTMENTS.map((department) => (
+                <div key={department.id} className="flex items-center space-x-2">
                   <Checkbox
-                    id={dept.value}
-                    checked={departments.includes(dept.value)}
+                    id={department.id}
+                    checked={selectedDepartments.includes(department.id)}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setDepartments([...departments, dept.value]);
+                        setSelectedDepartments([...selectedDepartments, department.id]);
                       } else {
-                        setDepartments(
-                          departments.filter((d) => d !== dept.value),
+                        setSelectedDepartments(
+                          selectedDepartments.filter((d) => d !== department.id)
                         );
                       }
                     }}
                   />
-                  <Label htmlFor={dept.value}>{dept.label}</Label>
+                  <label htmlFor={department.id}>{department.label}</label>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Task Data (JSON)</Label>
+          <div className="space-y-4">
+            <label className="block text-sm font-medium">Task Data (JSON)</label>
             <Textarea
-              value={data}
-              onChange={(e) => setData(e.target.value)}
-              placeholder='{"key": "value"}'
-              className="font-mono"
-              rows={5}
+              value={taskData}
+              onChange={(e) => setTaskData(e.target.value)}
+              placeholder="Enter task data in JSON format"
+              className="h-32"
             />
           </div>
 
-          <Button type="submit" disabled={loading}>
-            {loading ? "Submitting..." : "Submit Task"}
+          <Button type="submit" disabled={isSubmitting || !selectedDepartments.length}>
+            {isSubmitting ? "Submitting..." : "Submit Task"}
           </Button>
         </form>
       </CardContent>

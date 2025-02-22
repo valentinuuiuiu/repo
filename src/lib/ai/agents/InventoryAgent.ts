@@ -1,12 +1,75 @@
 import { BaseAgent } from "../core/BaseAgent";
-import type { Product } from "@/types/schema";
+import type { Product, Order, Supplier } from "@/types/schema";
+import type { AgentResponse } from "../types";
 
 export class InventoryAgent extends BaseAgent {
   constructor() {
     super({
-      name: 'inventory-agent',
-      description: 'AI agent for dropshipping inventory and order management'
+      name: "inventory-agent",
+      description: "AI agent for inventory management and optimization"
     });
+  }
+
+  async predictDemand(product: Product, historicalData: any): Promise<AgentResponse> {
+    const messages = [
+      {
+        role: "system" as const,
+        content: "You are an inventory demand forecasting specialist."
+      },
+      {
+        role: "user" as const,
+        content: JSON.stringify({ product, historicalData })
+      }
+    ];
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const forecast = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: forecast,
+        metadata: {
+          confidence: 0.75,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async optimizeStockLevels(products: Product[]): Promise<AgentResponse> {
+    const messages = [
+      {
+        role: "system" as const,
+        content: "You are an inventory optimization specialist. Suggest optimal stock levels."
+      },
+      {
+        role: "user" as const,
+        content: JSON.stringify({ products })
+      }
+    ];
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const optimization = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: optimization,
+        metadata: {
+          confidence: 0.8,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 
   async forecastDemand(product: Product, historicalData: any) {
@@ -71,41 +134,5 @@ export class InventoryAgent extends BaseAgent {
       }
     ];
     return JSON.parse(await this.chat(messages) || '{}');
-  }
-} {
-  constructor() {
-    super({
-      name: "inventory-agent",
-      description: "AI agent for inventory management and optimization",
-    });
-  }
-
-  async predictDemand(product: Product, historicalData: any) {
-    const messages = [
-      {
-        role: "system" as const,
-        content: "You are an inventory demand forecasting specialist.",
-      },
-      {
-        role: "user" as const,
-        content: JSON.stringify({ product, historicalData }),
-      },
-    ];
-    return JSON.parse((await this.chat(messages)) || "{}");
-  }
-
-  async optimizeStockLevels(products: Product[]) {
-    const messages = [
-      {
-        role: "system" as const,
-        content:
-          "You are an inventory optimization specialist. Suggest optimal stock levels.",
-      },
-      {
-        role: "user" as const,
-        content: JSON.stringify({ products }),
-      },
-    ];
-    return JSON.parse((await this.chat(messages)) || "{}");
   }
 }

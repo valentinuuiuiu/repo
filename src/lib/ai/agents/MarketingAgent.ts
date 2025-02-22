@@ -1,12 +1,78 @@
 import { BaseAgent } from "../core/BaseAgent";
 import type { Product } from "@/types/schema";
+import type { AgentResponse } from "../types";
 
 export class MarketingAgent extends BaseAgent {
   constructor() {
     super({
-      name: 'marketing-agent',
-      description: 'AI agent for dropshipping marketing and advertising optimization'
+      name: "marketing-agent",
+      description: "AI agent for marketing strategy and campaign optimization"
     });
+  }
+
+  async createMarketingStrategy(product: Product): Promise<AgentResponse> {
+    const messages = [
+      {
+        role: "system" as const,
+        content: "You are a marketing strategist. Create comprehensive marketing strategies for products."
+      },
+      {
+        role: "user" as const,
+        content: JSON.stringify({
+          product,
+          request: "Create a marketing strategy including target audience, channels, and key messages."
+        })
+      }
+    ];
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const strategy = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: strategy,
+        metadata: {
+          confidence: 0.85,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async optimizeAds(product: Product, currentPerformance: any): Promise<AgentResponse> {
+    const messages = [
+      {
+        role: "system" as const,
+        content: "You are an advertising optimization specialist. Analyze ad performance and suggest improvements."
+      },
+      {
+        role: "user" as const,
+        content: JSON.stringify({ product, currentPerformance })
+      }
+    ];
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const optimization = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: optimization,
+        metadata: {
+          confidence: 0.8,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 
   async createAdCampaigns(product: Product, platform: string) {
@@ -71,46 +137,5 @@ export class MarketingAgent extends BaseAgent {
       }
     ];
     return JSON.parse(await this.chat(messages) || '{}');
-  }
-} {
-  constructor() {
-    super({
-      name: "marketing-agent",
-      description: "AI agent for marketing strategy and campaign optimization",
-    });
-  }
-
-  async createMarketingStrategy(product: Product) {
-    const messages = [
-      {
-        role: "system" as const,
-        content:
-          "You are a marketing strategist. Create comprehensive marketing strategies for products.",
-      },
-      {
-        role: "user" as const,
-        content: JSON.stringify({
-          product,
-          request:
-            "Create a marketing strategy including target audience, channels, and key messages.",
-        }),
-      },
-    ];
-    return JSON.parse((await this.chat(messages)) || "{}");
-  }
-
-  async optimizeAds(product: Product, currentPerformance: any) {
-    const messages = [
-      {
-        role: "system" as const,
-        content:
-          "You are an advertising optimization specialist. Analyze ad performance and suggest improvements.",
-      },
-      {
-        role: "user" as const,
-        content: JSON.stringify({ product, currentPerformance }),
-      },
-    ];
-    return JSON.parse((await this.chat(messages)) || "{}");
   }
 }

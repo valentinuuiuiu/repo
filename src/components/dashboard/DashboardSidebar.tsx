@@ -10,6 +10,7 @@ import {
   Package,
   Users,
   HelpCircle,
+  Wrench,
 } from "lucide-react";
 import {
   Tooltip,
@@ -72,6 +73,12 @@ const DashboardSidebar = ({
       label: "Settings",
       href: "/settings",
       path: "/settings",
+    },
+    {
+      icon: <Wrench size={20} />,
+      label: "Code Maintenance",
+      href: "/maintenance",
+      path: "/maintenance",
     },
   ].map((item) => ({
     ...item,

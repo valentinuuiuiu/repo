@@ -1,83 +1,137 @@
 import { useState } from "react";
-import { Button } from "../ui/button";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { Task } from "@/lib/ai/types";
+import { Badge } from "../ui/badge";
+import { aiService } from "@/lib/ai";
+import { TaskValidator, Task } from "@/lib/ai/core/TaskValidator";
 
-interface TaskReviewProps {
-  task: Task;
-  onApprove: (feedback: { comments: string; modifications?: any }) => void;
-  onReject: (feedback: { comments: string }) => void;
+const taskValidator = new TaskValidator();
+
+export interface Task {
+  id: string;
+  type: string;
+  departments: string[];
+  created_at: string;
+  status: string;
 }
 
-export function TaskReview({ task, onApprove, onReject }: TaskReviewProps) {
-  const [feedback, setFeedback] = useState("");
-  const [modifications, setModifications] = useState("");
+interface TaskReviewFeedback {
+  comments: string;
+  modifications?: unknown;
+}
+
+export function TaskReview() {
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string>("");
+
+  const { data: tasks, refetch } = useQuery({
+    queryKey: ["pending-tasks"],
+    queryFn: async () => {
+      const allTasks = await aiService.manager.listTasks();
+      return (allTasks as Task[]).filter(task => task.status === "needs_review");
+    }
+  });
+
+  const { data: validationReport, isLoading: validating } = useQuery({
+    queryKey: ["task-validation", selectedTaskId],
+    queryFn: async () => {
+      if (!selectedTaskId) return null;
+      const task = tasks?.find(t => t.id === selectedTaskId);
+      if (!task) return null;
+      return await taskValidator.generateValidationReport(task);
+    },
+    enabled: !!selectedTaskId
+  });
+
+  const handleApprove = async () => {
+    if (!selectedTaskId) return;
+    await aiService.manager.updateTaskStatus(selectedTaskId, "completed", feedback);
+    setSelectedTaskId(null);
+    setFeedback("");
+    refetch();
+  };
+
+  const handleReject = async () => {
+    if (!selectedTaskId) return;
+    await aiService.manager.updateTaskStatus(selectedTaskId, "failed", feedback);
+    setSelectedTaskId(null);
+    setFeedback("");
+    refetch();
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Review Task Results</CardTitle>
+        <CardTitle>Task Review Queue</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <h3 className="font-medium">Task Type</h3>
-          <p>{task.type}</p>
-        </div>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Task List */}
+          <div className="space-y-2">
+            {tasks?.map((task) => (
+              <div
+                key={task.id}
+                className={`p-4 border rounded cursor-pointer ${
+                  selectedTaskId === task.id ? "border-primary" : ""
+                }`}
+                onClick={() => setSelectedTaskId(task.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium capitalize">
+                      {task.type.replace(/_/g, " ")}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Departments: {task.departments.join(", ")}
+                    </p>
+                  </div>
+                  <Badge>{new Date(task.created_at).toLocaleDateString()}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
 
-        <div className="space-y-2">
-          <h3 className="font-medium">Departments Involved</h3>
-          <p>{task.departments.join(", ")}</p>
-        </div>
+          {/* Validation Report */}
+          {selectedTaskId && validationReport && (
+            <div className="space-y-2">
+              <h3 className="font-medium">Automated Validation</h3>
+              <pre className="p-4 bg-muted rounded text-sm whitespace-pre-wrap">
+                {validationReport}
+              </pre>
+            </div>
+          )}
 
-        <div className="space-y-2">
-          <h3 className="font-medium">Results</h3>
-          <pre className="bg-muted p-4 rounded-md overflow-auto">
-            {JSON.stringify(task.result, null, 2)}
-          </pre>
-        </div>
+          {/* Review Form */}
+          {selectedTaskId && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Feedback</label>
+                <Textarea
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  placeholder="Enter your feedback..."
+                  className="h-32"
+                />
+              </div>
 
-        <div className="space-y-2">
-          <h3 className="font-medium">Your Feedback</h3>
-          <Textarea
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            placeholder="Provide your feedback..."
-            rows={3}
-          />
-        </div>
+              <div className="flex space-x-2">
+                <Button onClick={handleApprove} className="flex-1">
+                  Approve
+                </Button>
+                <Button onClick={handleReject} variant="destructive" className="flex-1">
+                  Reject
+                </Button>
+              </div>
+            </div>
+          )}
 
-        <div className="space-y-2">
-          <h3 className="font-medium">Suggested Modifications (JSON)</h3>
-          <Textarea
-            value={modifications}
-            onChange={(e) => setModifications(e.target.value)}
-            placeholder='{"key": "value"}'
-            className="font-mono"
-            rows={3}
-          />
-        </div>
-
-        <div className="flex space-x-2">
-          <Button
-            variant="default"
-            onClick={() =>
-              onApprove({
-                comments: feedback,
-                modifications: modifications
-                  ? JSON.parse(modifications)
-                  : undefined,
-              })
-            }
-          >
-            Approve
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => onReject({ comments: feedback })}
-          >
-            Reject
-          </Button>
+          {tasks?.length === 0 && (
+            <p className="text-center text-muted-foreground">
+              No tasks waiting for review
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

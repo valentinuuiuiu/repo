@@ -1,92 +1,22 @@
 import { BaseAgent } from "../core/BaseAgent";
-import type { Supplier, Order } from "@/types/schema";
+import type { Supplier, Order, Product } from "@/types/schema";
+import type { AgentResponse } from "../types";
 
 export class SupplierAgent extends BaseAgent {
   constructor() {
     super({
-      name: 'supplier-agent',
-      description: 'AI agent for dropshipping supplier management and optimization'
-    });
-  }
-
-  async evaluateSupplier(supplier: Supplier, orders: Order[]) {
-    const messages = [
-      {
-        role: 'system' as const,
-        content: `You are a dropshipping supplier analyst. Evaluate supplier reliability and performance.
-                 Consider: shipping times, product quality, communication responsiveness, order accuracy, and pricing stability.
-                 Provide specific metrics and recommendations for supplier relationship management.`
-      },
-      {
-        role: 'user' as const,
-        content: JSON.stringify({ supplier, orders })
-      }
-    ];
-    return JSON.parse(await this.chat(messages) || '{}');
-  }
-
-  async negotiatePricing(supplier: Supplier, products: Product[], orderVolume: number) {
-    const messages = [
-      {
-        role: 'system' as const,
-        content: `You are a supplier negotiation specialist. Suggest negotiation strategies for better pricing.
-                 Consider: order volume, competition, market prices, and seasonal factors.
-                 Provide specific negotiation points and target price ranges.`
-      },
-      {
-        role: 'user' as const,
-        content: JSON.stringify({ supplier, products, orderVolume })
-      }
-    ];
-    return JSON.parse(await this.chat(messages) || '{}');
-  }
-
-  async findAlternativeSuppliers(product: Product, currentSupplier: Supplier) {
-    const messages = [
-      {
-        role: 'system' as const,
-        content: `You are a supplier sourcing specialist. Find and evaluate alternative suppliers.
-                 Consider: product quality, pricing, shipping options, minimum order quantities, and reliability metrics.
-                 Provide specific supplier recommendations with pros and cons.`
-      },
-      {
-        role: 'user' as const,
-        content: JSON.stringify({ product, currentSupplier })
-      }
-    ];
-    return JSON.parse(await this.chat(messages) || '{}');
-  }
-
-  async optimizeShipping(supplier: Supplier, orders: Order[]) {
-    const messages = [
-      {
-        role: 'system' as const,
-        content: `You are a shipping optimization specialist. Analyze and improve shipping strategies.
-                 Consider: shipping costs, delivery times, tracking reliability, and customer satisfaction.
-                 Suggest specific improvements for shipping efficiency and cost reduction.`
-      },
-      {
-        role: 'user' as const,
-        content: JSON.stringify({ supplier, orders })
-      }
-    ];
-    return JSON.parse(await this.chat(messages) || '{}');
-  }
-} {
-  constructor() {
-    super({
       name: "supplier-agent",
-      description:
-        "AI agent for supplier analysis, performance monitoring and optimization",
+      description: "AI agent for supplier analysis, performance monitoring and optimization",
     });
   }
 
-  async analyzePerformance(supplier: Supplier, orders: Order[]) {
+  async analyzePerformance(supplier: Supplier, orders: Order[]): Promise<AgentResponse> {
     const messages = [
       {
         role: "system" as const,
         content: `You are a supplier performance analyst. Evaluate the supplier's performance metrics and provide insights.
-                 Consider: fulfillment speed, quality scores, communication, reliability, and overall value.`,
+                 Consider: fulfillment speed, quality scores, communication, reliability, and overall value.
+                 Calculate trends and identify potential issues before they become problems.`,
       },
       {
         role: "user" as const,
@@ -103,21 +33,98 @@ export class SupplierAgent extends BaseAgent {
             status: order.status,
             fulfillmentStatus: order.fulfillmentStatus,
             createdAt: order.createdAt,
+            items: order.items,
           })),
         }),
       },
     ];
 
-    const response = await this.chat(messages);
-    return JSON.parse(response || "{}");
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const analysis = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: analysis,
+        metadata: {
+          confidence: this.calculateConfidence(analysis),
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        data: null,
+        error: error.message,
+        metadata: {
+          confidence: 0,
+          processingTime: 0
+        }
+      };
+    }
   }
 
-  async predictReliability(supplier: Supplier, orders: Order[]) {
+  async optimizeInventory(supplier: Supplier, products: Product[]): Promise<AgentResponse> {
+    const messages = [
+      {
+        role: "system" as const,
+        content: `You are an inventory optimization specialist. Analyze supplier products and suggest optimal inventory levels.
+                 Consider: historical sales data, lead times, seasonal patterns, and carrying costs.
+                 Provide specific recommendations for each product.`,
+      },
+      {
+        role: "user" as const,
+        content: JSON.stringify({
+          supplier,
+          products: products.map(p => ({
+            id: p.id,
+            title: p.title,
+            inventory: p.inventory,
+            price: p.price,
+            costPrice: p.costPrice,
+            category: p.category,
+            tags: p.tags
+          }))
+        }),
+      },
+    ];
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const analysis = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: analysis,
+        metadata: {
+          confidence: this.calculateConfidence(analysis),
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        data: null,
+        error: error.message,
+        metadata: {
+          confidence: 0,
+          processingTime: 0
+        }
+      };
+    }
+  }
+
+  async predictReliability(supplier: Supplier, orders: Order[]): Promise<AgentResponse> {
     const messages = [
       {
         role: "system" as const,
         content: `You are a supplier reliability predictor. Analyze historical data and predict future performance.
-                 Consider: order history, consistency, seasonal patterns, and risk factors.`,
+                 Consider: order history, consistency, seasonal patterns, and risk factors.
+                 Provide risk assessment and mitigation strategies.`,
       },
       {
         role: "user" as const,
@@ -126,42 +133,70 @@ export class SupplierAgent extends BaseAgent {
             name: supplier.name,
             rating: supplier.rating,
             status: supplier.status,
+            fulfillmentSpeed: supplier.fulfillmentSpeed,
+            qualityScore: supplier.qualityScore,
           },
           orderHistory: orders.map((order) => ({
             date: order.createdAt,
             status: order.status,
             fulfillmentStatus: order.fulfillmentStatus,
+            items: order.items
           })),
         }),
       },
     ];
 
-    const response = await this.chat(messages);
-    return JSON.parse(response || "{}");
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const prediction = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: prediction,
+        metadata: {
+          confidence: this.calculateConfidence(prediction),
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        data: null,
+        error: error.message,
+        metadata: {
+          confidence: 0,
+          processingTime: 0
+        }
+      };
+    }
   }
 
-  async suggestImprovements(supplier: Supplier) {
-    const messages = [
-      {
-        role: "system" as const,
-        content: `You are a supplier optimization specialist. Suggest areas for improvement and specific actions.
-                 Consider: current performance metrics, industry standards, and best practices.`,
-      },
-      {
-        role: "user" as const,
-        content: JSON.stringify({
-          name: supplier.name,
-          metrics: {
-            rating: supplier.rating,
-            fulfillmentSpeed: supplier.fulfillmentSpeed,
-            qualityScore: supplier.qualityScore,
-            communicationScore: supplier.communicationScore,
-          },
-        }),
-      },
-    ];
-
-    const response = await this.chat(messages);
-    return JSON.parse(response || "{}");
+  private calculateConfidence(analysis: any): number {
+    // Calculate confidence based on data completeness and consistency
+    let confidence = 0.5; // Base confidence
+    
+    if (!analysis) return 0;
+    
+    // Check for required fields
+    const hasRequiredFields = ['recommendations', 'analysis', 'risks'].every(
+      field => field in analysis
+    );
+    if (hasRequiredFields) confidence += 0.2;
+    
+    // Check for data quality
+    const hasDetailedAnalysis = analysis.analysis?.length > 100;
+    if (hasDetailedAnalysis) confidence += 0.1;
+    
+    // Check for specific metrics
+    const hasMetrics = analysis.metrics && Object.keys(analysis.metrics).length > 0;
+    if (hasMetrics) confidence += 0.1;
+    
+    // Check for actionable recommendations
+    const hasActionableRecs = analysis.recommendations?.length > 2;
+    if (hasActionableRecs) confidence += 0.1;
+    
+    return Math.min(confidence, 1.0);
   }
 }

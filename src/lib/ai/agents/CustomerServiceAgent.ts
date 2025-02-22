@@ -1,15 +1,84 @@
 import { BaseAgent } from "../core/BaseAgent";
-import type { Customer, Order } from "@/types/schema";
+import type { Customer, Order, Product } from "@/types/schema";
+import type { AgentResponse } from "../types";
 
 export class CustomerServiceAgent extends BaseAgent {
   constructor() {
     super({
-      name: 'customer-service-agent',
-      description: 'AI agent for dropshipping customer service and satisfaction'
+      name: "customer-service-agent",
+      description: "AI agent for customer support and satisfaction optimization"
     });
   }
 
-  async handleShippingInquiry(order: Order, customer: Customer) {
+  async handleInquiry(inquiry: string, customer: Customer): Promise<AgentResponse> {
+    const messages = [
+      {
+        role: "system" as const,
+        content: "You are a customer service specialist. Provide helpful and professional responses."
+      },
+      {
+        role: "user" as const,
+        content: JSON.stringify({ inquiry, customer })
+      }
+    ];
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const answer = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: answer,
+        metadata: {
+          confidence: 0.9,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        return this.handleError(error);
+      }
+      return this.handleError(new Error(String(error)));
+    }
+  }
+
+  async analyzeSatisfaction(customer: Customer, orders: Order[]): Promise<AgentResponse> {
+    const messages = [
+      {
+        role: "system" as const,
+        content: "You are a customer satisfaction analyst. Evaluate customer experience and suggest improvements."
+      },
+      {
+        role: "user" as const,
+        content: JSON.stringify({ customer, orders })
+      }
+    ];
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const analysis = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: analysis,
+        metadata: {
+          confidence: 0.85,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        return this.handleError(error);
+      }
+      return this.handleError(new Error(String(error)));
+    }
+  }
+
+  async handleShippingInquiry(order: Order, customer: Customer): Promise<AgentResponse> {
     const messages = [
       {
         role: 'system' as const,
@@ -22,10 +91,27 @@ export class CustomerServiceAgent extends BaseAgent {
         content: JSON.stringify({ order, customer })
       }
     ];
-    return JSON.parse(await this.chat(messages) || '{}');
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const answer = JSON.parse(response || '{}');
+      
+      return {
+        success: true,
+        data: answer,
+        metadata: {
+          confidence: 0.9,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 
-  async handleReturnRequest(order: Order, reason: string) {
+  async handleReturnRequest(order: Order, reason: string): Promise<AgentResponse> {
     const messages = [
       {
         role: 'system' as const,
@@ -38,10 +124,27 @@ export class CustomerServiceAgent extends BaseAgent {
         content: JSON.stringify({ order, reason })
       }
     ];
-    return JSON.parse(await this.chat(messages) || '{}');
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const answer = JSON.parse(response || '{}');
+      
+      return {
+        success: true,
+        data: answer,
+        metadata: {
+          confidence: 0.85,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 
-  async generateCustomerFAQ(products: Product[]) {
+  async generateCustomerFAQ(products: Product[]): Promise<AgentResponse> {
     const messages = [
       {
         role: 'system' as const,
@@ -54,10 +157,30 @@ export class CustomerServiceAgent extends BaseAgent {
         content: JSON.stringify({ products })
       }
     ];
-    return JSON.parse(await this.chat(messages) || '{}');
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const answer = JSON.parse(response || '{}');
+      
+      return {
+        success: true,
+        data: answer,
+        metadata: {
+          confidence: 0.9,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        return this.handleError(error);
+      }
+      return this.handleError(new Error(String(error)));
+    }
   }
 
-  async analyzeCustomerFeedback(reviews: any[], orders: Order[]) {
+  async analyzeCustomerFeedback(reviews: any[], orders: Order[]): Promise<AgentResponse> {
     const messages = [
       {
         role: 'system' as const,
@@ -70,44 +193,23 @@ export class CustomerServiceAgent extends BaseAgent {
         content: JSON.stringify({ reviews, orders })
       }
     ];
-    return JSON.parse(await this.chat(messages) || '{}');
-  }
-} {
-  constructor() {
-    super({
-      name: "customer-service-agent",
-      description:
-        "AI agent for customer support and satisfaction optimization",
-    });
-  }
 
-  async handleInquiry(inquiry: string, customer: Customer) {
-    const messages = [
-      {
-        role: "system" as const,
-        content:
-          "You are a customer service specialist. Provide helpful and professional responses.",
-      },
-      {
-        role: "user" as const,
-        content: JSON.stringify({ inquiry, customer }),
-      },
-    ];
-    return JSON.parse((await this.chat(messages)) || "{}");
-  }
-
-  async analyzeSatisfaction(customer: Customer, orders: Order[]) {
-    const messages = [
-      {
-        role: "system" as const,
-        content:
-          "You are a customer satisfaction analyst. Evaluate customer experience and suggest improvements.",
-      },
-      {
-        role: "user" as const,
-        content: JSON.stringify({ customer, orders }),
-      },
-    ];
-    return JSON.parse((await this.chat(messages)) || "{}");
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const answer = JSON.parse(response || '{}');
+      
+      return {
+        success: true,
+        data: answer,
+        metadata: {
+          confidence: 0.85,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 }

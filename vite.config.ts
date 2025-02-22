@@ -12,15 +12,38 @@ export default defineConfig({
     preserveSymlinks: true,
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "fs/promises": path.resolve(__dirname, "./src/mocks/fs-promises-mock.ts"),
+      "fs": path.resolve(__dirname, "./src/mocks/fs-promises-mock.ts"),
+      "chromadb": path.resolve(__dirname, "./src/mocks/chroma-mock.ts"),
+      "chromadb-default-embed": path.resolve(__dirname, "./src/mocks/empty-module.ts"),
     },
   },
   optimizeDeps: {
     entries: ["src/main.tsx", "src/tempobook/**/*"],
-    exclude: ['ioredis', 'redis'],
+    exclude: ['ioredis', 'redis', 'fs/promises', 'node:fs/promises', 'chromadb'],
+    esbuildOptions: {
+      target: 'es2020',
+      // Explicitly tell esbuild to ignore fs/promises and chromadb-default-embed
+      plugins: [
+        {
+          name: 'ignore-fs-promises-and-chroma',
+          setup(build) {
+            build.onResolve({ filter: /^fs\/promises$/ }, () => ({
+              path: path.resolve(__dirname, "./src/mocks/fs-promises-mock.ts"),
+            }));
+            build.onResolve({ filter: /^chromadb-default-embed$/ }, () => ({
+              path: path.resolve(__dirname, "./src/mocks/empty-module.ts"),
+              external: true
+            }));
+          },
+        },
+      ],
+    }
   },
   plugins: [
     nodePolyfills({
       protocolImports: true,
+      exclude: ['fs', 'fs/promises', 'node:fs/promises'],
     }),
     react({
       plugins: conditionalPlugins,
@@ -35,7 +58,8 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['redis'],
+      external: ['redis', 'fs'],
     },
+    target: 'es2020',
   }
 });

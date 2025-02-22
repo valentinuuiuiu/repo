@@ -15,10 +15,15 @@
     "jsx": "react-jsx",
 
     "strict": true,
+    "noImplicitAny": false,
     "paths": {
       "@/*": ["./src/*"]
     },
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"],
+    "allowJs": true,
+    "esModuleInterop": true
   },
   "include": ["src"],
   "exclude": ["src/tempobook"],

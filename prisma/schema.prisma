@@ -48,6 +48,8 @@ model Product {
   supplier       Supplier  @relation(fields: [supplierId], references: [id])
   storeId        String
   store          Store     @relation(fields: [storeId], references: [id])
+  departmentId   String
+  department     Department @relation(fields: [departmentId], references: [id])
   variants       ProductVariant[]
   status         String    @default("draft")
   createdAt      DateTime  @default(now())
@@ -78,9 +80,12 @@ model Supplier {
   rating            Float     @default(0)
   fulfillmentSpeed  Float     @default(0)
   qualityScore      Float     @default(0)
-  communicationScore Float     @default(0)
+  communicationScore Float    @default(0)
+  integration       SupplierIntegration @default(SHOPIFY)
   products          Product[]
   orders            Order[]
+  departmentId      String
+  department        Department @relation(fields: [departmentId], references: [id])
   status            String    @default("active")
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -157,4 +162,47 @@ model Address {
   billingOrders   Order[]   @relation("BillingAddress")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+model Department {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  code        String    @unique  // For internal reference
+  products    Product[]
+  suppliers   Supplier[]
+  agents      Agent[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Agent {
+  id           String     @id @default(cuid())
+  name         String
+  type         AgentType
+  description  String?
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  status       String     @default("active")
+  config       Json?      // Store agent-specific configuration
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+enum AgentType {
+  CUSTOMER_SERVICE
+  INVENTORY_MANAGEMENT
+  PRICING_OPTIMIZATION
+  SUPPLIER_COMMUNICATION
+  ORDER_PROCESSING
+  QUALITY_CONTROL
+  CODE_MAINTENANCE
+}
+
+enum SupplierIntegration {
+  SHOPIFY
+  ALIBABA
+  ALIEXPRESS
+  TEMU
+  AMAZON
 }

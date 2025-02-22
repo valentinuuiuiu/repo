@@ -20,6 +20,7 @@ import DocumentationPage from "./pages/documentation";
 import ApiPage from "./pages/api";
 import PricingPage from "./pages/pricing";
 import FeaturesPage from "./pages/features";
+import { CodeMaintenance } from "./components/ai/CodeMaintenance";
 
 export const router = createBrowserRouter([
   {
@@ -184,6 +185,14 @@ export const router = createBrowserRouter([
       <PageLayout>
         <FeaturesPage />
       </PageLayout>
+    ),
+  },
+  {
+    path: "/maintenance",
+    element: (
+      <Layout>
+        <CodeMaintenance />
+      </Layout>
     ),
   },
 ]);

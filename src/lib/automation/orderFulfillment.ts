@@ -1,6 +1,24 @@
 import { prisma } from '../prisma';
 import { sendEmail } from '../notifications/email';
-import { Order, Supplier } from '@prisma/client';
+import { Order, Supplier, OrderItem, Product, ShippingAddress } from '@prisma/client';
+
+interface OrderWithRelations extends Order {
+  items: (OrderItem & {
+    product: Product;
+  })[];
+  supplier: Supplier;
+  shippingAddress: ShippingAddress;
+}
+
+interface SupplierOrderDetails {
+  orderNumber: string;
+  items: {
+    sku: string;
+    quantity: number;
+    title: string;
+  }[];
+  shippingAddress: ShippingAddress;
+}
 
 export class OrderFulfillmentService {
   async processNewOrder(orderId: string) {
@@ -20,16 +38,16 @@ export class OrderFulfillmentService {
     if (!order) throw new Error('Order not found');
 
     // Group items by supplier
-    const itemsBySupplier = order.items.reduce((acc, item) => {
+    const itemsBySupplier = order.items.reduce<Record<string, typeof order.items>>((acc, item) => {
       const supplierId = item.product.supplierId;
       if (!acc[supplierId]) acc[supplierId] = [];
       acc[supplierId].push(item);
       return acc;
-    }, {} as Record<string, typeof order.items>);
+    }, {});
 
     // Process each supplier's items
     for (const [supplierId, items] of Object.entries(itemsBySupplier)) {
-      await this.sendSupplierOrder(order, items);
+      await this.sendSupplierOrder(order as OrderWithRelations, items);
     }
 
     // Update order status
@@ -42,8 +60,8 @@ export class OrderFulfillmentService {
     });
   }
 
-  private async sendSupplierOrder(order: Order & { supplier: Supplier }, items: any[]) {
-    const orderDetails = {
+  private async sendSupplierOrder(order: OrderWithRelations, items: OrderWithRelations['items']) {
+    const orderDetails: SupplierOrderDetails = {
       orderNumber: order.orderNumber,
       items: items.map(item => ({
         sku: item.product.sku,
@@ -53,9 +71,11 @@ export class OrderFulfillmentService {
       shippingAddress: order.shippingAddress
     };
 
-    // Send email to supplier
     await sendEmail({
       to: order.supplier.email,
       subject: `New Order #${order.orderNumber}`,
       template: 'supplier-order',
       data: orderDetails
+    });
+  }
+}

@@ -43,8 +43,8 @@ export default function AITasks() {
         {selectedTask && (
           <TaskReview
             task={selectedTask}
-            onApprove={(feedback) => handleApprove(selectedTask.id, feedback)}
-            onReject={(feedback) => handleReject(selectedTask.id, feedback)}
+            onApprove={(feedback: { comments: string; modifications?: any }) => handleApprove(selectedTask.id, feedback)}
+            onReject={(feedback: { comments: string }) => handleReject(selectedTask.id, feedback)}
           />
         )}
       </div>

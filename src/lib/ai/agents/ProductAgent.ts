@@ -1,34 +1,97 @@
 import { BaseAgent } from "../core/BaseAgent";
 import type { Product } from "@/types/schema";
+import type { AgentResponse } from "../types";
 
 export class ProductAgent extends BaseAgent {
   constructor() {
     super({
-      name: 'product-agent',
-      description: 'AI agent for dropshipping product analysis and optimization'
+      name: "product-agent",
+      description: "AI agent for product analysis, optimization and pricing strategies"
     });
   }
 
-  async analyzePricing(product: Product) {
+  async analyzePricing(product: Product): Promise<AgentResponse> {
     const messages = [
       {
-        role: 'system' as const,
-        content: `You are a dropshipping pricing specialist. Analyze the product and suggest optimal pricing strategies.
-                 Consider: supplier cost, shipping costs, competitor prices, market demand, and target profit margins.
-                 Provide specific price points for different marketplaces (Amazon, eBay, Shopify store).`
+        role: "system" as const,
+        content: `You are a product pricing specialist. Analyze the product data and provide pricing recommendations. 
+                 Consider: market position, competitor prices, profit margins, and market trends.`
       },
       {
-        role: 'user' as const,
+        role: "user" as const,
         content: JSON.stringify({
-          product,
-          request: 'Analyze pricing strategy for this product'
+          title: product.title,
+          currentPrice: product.price,
+          costPrice: product.costPrice,
+          category: product.category,
+          marketData: {
+            competitorPrices: [], // This would be fetched from market research
+            marketTrends: []     // This would be fetched from analytics
+          }
         })
       }
     ];
-    return JSON.parse(await this.chat(messages) || '{}');
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const analysis = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: analysis,
+        metadata: {
+          confidence: 0.8,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        return this.handleError(error);
+      }
+      return this.handleError(new Error(String(error)));
+    }
   }
 
-  async findTrendingProducts(category: string, marketData: any) {
+  async optimizeDescription(product: Product): Promise<AgentResponse> {
+    const messages = [
+      {
+        role: "system" as const,
+        content: `You are a product content specialist. Optimize the product description for better conversion rates.
+                 Focus on: key features, benefits, SEO optimization, and compelling selling points.`
+      },
+      {
+        role: "user" as const,
+        content: JSON.stringify({
+          title: product.title,
+          description: product.description,
+          category: product.category,
+          tags: product.tags
+        })
+      }
+    ];
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const optimized = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: optimized,
+        metadata: {
+          confidence: 0.85,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async findTrendingProducts(category: string, marketData: any): Promise<AgentResponse> {
     const messages = [
       {
         role: 'system' as const,
@@ -41,10 +104,27 @@ export class ProductAgent extends BaseAgent {
         content: JSON.stringify({ category, marketData })
       }
     ];
-    return JSON.parse(await this.chat(messages) || '{}');
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const trendingProducts = JSON.parse(response || '{}');
+      
+      return {
+        success: true,
+        data: trendingProducts,
+        metadata: {
+          confidence: 0.9,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 
-  async optimizeListings(product: Product, platform: string) {
+  async optimizeListings(product: Product, platform: string): Promise<AgentResponse> {
     const messages = [
       {
         role: 'system' as const,
@@ -57,10 +137,27 @@ export class ProductAgent extends BaseAgent {
         content: JSON.stringify({ product, platform })
       }
     ];
-    return JSON.parse(await this.chat(messages) || '{}');
+
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const optimizedListing = JSON.parse(response || '{}');
+      
+      return {
+        success: true,
+        data: optimizedListing,
+        metadata: {
+          confidence: 0.88,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 
-  async analyzeCompetition(product: Product, marketplaceData: any) {
+  async analyzeCompetition(product: Product, marketplaceData: any): Promise<AgentResponse> {
     const messages = [
       {
         role: 'system' as const,
@@ -72,68 +169,32 @@ export class ProductAgent extends BaseAgent {
         content: JSON.stringify({ product, marketplaceData })
       }
     ];
-    return JSON.parse(await this.chat(messages) || '{}');
-  }
-} {
-  constructor() {
-    super({
-      name: "product-agent",
-      description:
-        "AI agent for product analysis, optimization and pricing strategies",
-    });
-  }
 
-  async analyzePricing(product: Product) {
-    const messages = [
-      {
-        role: "system" as const,
-        content: `You are a product pricing specialist. Analyze the product data and provide pricing recommendations. 
-                 Consider: market position, competitor prices, profit margins, and market trends.`,
-      },
-      {
-        role: "user" as const,
-        content: JSON.stringify({
-          title: product.title,
-          currentPrice: product.price,
-          costPrice: product.costPrice,
-          category: product.category,
-          competitorPrices: product.competitorPrices || [],
-        }),
-      },
-    ];
-
-    const response = await this.chat(messages);
-    return JSON.parse(response || "{}");
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const competitionAnalysis = JSON.parse(response || '{}');
+      
+      return {
+        success: true,
+        data: competitionAnalysis,
+        metadata: {
+          confidence: 0.87,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 
-  async optimizeDescription(product: Product) {
-    const messages = [
-      {
-        role: "system" as const,
-        content: `You are a product content specialist. Optimize the product description for better conversion rates.
-                 Focus on: key features, benefits, SEO optimization, and compelling selling points.`,
-      },
-      {
-        role: "user" as const,
-        content: JSON.stringify({
-          title: product.title,
-          description: product.description,
-          category: product.category,
-          tags: product.tags,
-        }),
-      },
-    ];
-
-    const response = await this.chat(messages);
-    return JSON.parse(response || "{}");
-  }
-
-  async suggestTags(product: Product) {
+  async suggestTags(product: Product): Promise<AgentResponse> {
     const messages = [
       {
         role: "system" as const,
         content: `You are a product categorization specialist. Suggest relevant tags and categories for the product.
-                 Consider: product type, features, target audience, and search trends.`,
+                 Consider: product type, features, target audience, and search trends.`
       },
       {
         role: "user" as const,
@@ -141,12 +202,27 @@ export class ProductAgent extends BaseAgent {
           title: product.title,
           description: product.description,
           currentTags: product.tags,
-          category: product.category,
-        }),
-      },
+          category: product.category
+        })
+      }
     ];
 
-    const response = await this.chat(messages);
-    return JSON.parse(response || "{}");
+    try {
+      const startTime = Date.now();
+      const response = await this.chat(messages);
+      const suggestedTags = JSON.parse(response || "{}");
+      
+      return {
+        success: true,
+        data: suggestedTags,
+        metadata: {
+          confidence: 0.83,
+          processingTime: Date.now() - startTime,
+          modelUsed: "gpt-4"
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 }

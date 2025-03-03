@@ -1,18 +1,24 @@
-import { Suspense } from "react";
-import { RouterProvider } from "react-router-dom";
-import { router } from "./routes";
+import React from 'react';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { AppRoutes } from './routes';
+import { Toaster } from './components/ui/toaster';
+import { ThemeProvider } from './providers/theme-provider';
+import Chatbot from './components/chatbot/Chatbot';
+
+const router = createBrowserRouter([
+  {
+    path: "/*",
+    element: <AppRoutes />
+  }
+]);
 
 function App() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-screen w-screen items-center justify-center">
-          <p>Loading...</p>
-        </div>
-      }
-    >
+    <ThemeProvider defaultTheme="system" storageKey="dropconnect-theme">
       <RouterProvider router={router} />
-    </Suspense>
+      <Toaster />
+      <Chatbot />
+    </ThemeProvider>
   );
 }
 

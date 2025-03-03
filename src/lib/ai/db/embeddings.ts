@@ -85,7 +85,7 @@ export async function semanticSearch(
     // Add similarity scores
     return {
       ...results,
-      scores: results.distances?.[0].map(distance => 1 - distance) // Convert distance to similarity score
+      scores: results.distances?.[0].map((distance: number) => 1 - distance) // Convert distance to similarity score
     };
   } catch (error) {
     console.error(`Error performing semantic search in ${collectionName}:`, error);

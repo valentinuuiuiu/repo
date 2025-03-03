@@ -7,11 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  MERCHANT
+  SUPPLIER
+  STAFF
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String?
   password      String
+  role          UserRole  @default(MERCHANT)
   stores        Store[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -28,7 +36,7 @@ model Store {
   products      Product[]
   orders        Order[]
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  updatedAt     DateTime  @default(now())
 }
 
 model Product {
@@ -36,6 +44,9 @@ model Product {
   title           String
   description     String?
   price          Float
+  image String?
+  supplierRating Float?
+  inStock Boolean?
   compareAtPrice Float?
   costPrice      Float
   sku            String?
@@ -51,9 +62,11 @@ model Product {
   departmentId   String
   department     Department @relation(fields: [departmentId], references: [id])
   variants       ProductVariant[]
+  orderItems     OrderItem[]
+  feedbackList   Feedback[]
   status         String    @default("draft")
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  updatedAt      DateTime  @default(now())
 }
 
 model ProductVariant {
@@ -68,7 +81,7 @@ model ProductVariant {
   inventory       Int       @default(0)
   options         Json
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  updatedAt       DateTime  @default(now())
 }
 
 model Supplier {
@@ -88,7 +101,7 @@ model Supplier {
   department        Department @relation(fields: [departmentId], references: [id])
   status            String    @default("active")
   createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  updatedAt         DateTime  @default(now())
 }
 
 model Order {
@@ -114,8 +127,11 @@ model Order {
   notes             String?
   supplierId        String
   supplier          Supplier  @relation(fields: [supplierId], references: [id])
+  returns           Return[]
+  complaints        Complaint[]
+  feedbackList      Feedback[]
   createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  updatedAt         DateTime  @default(now())
 }
 
 model OrderItem {
@@ -123,13 +139,15 @@ model OrderItem {
   orderId     String
   order       Order     @relation(fields: [orderId], references: [id])
   productId   String
+  product     Product   @relation(fields: [productId], references: [id])
   variantId   String?
   quantity    Int
   price       Float
   cost        Float
   profit      Float
+  returnItems ReturnItem[]
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime  @default(now())
 }
 
 model Customer {
@@ -140,8 +158,12 @@ model Customer {
   phone       String?
   orders      Order[]
   addresses   Address[]
+  customerInteractions CustomerInteraction[]
+  returns       Return[]
+  complaints    Complaint[]
+  feedbackList  Feedback[]
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime  @default(now())
 }
 
 model Address {
@@ -161,7 +183,7 @@ model Address {
   shippingOrders  Order[]   @relation("ShippingAddress")
   billingOrders   Order[]   @relation("BillingAddress")
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  updatedAt       DateTime  @default(now())
 }
 
 model Department {
@@ -176,27 +198,27 @@ model Department {
   updatedAt   DateTime  @updatedAt
 }
 
-model Agent {
-  id           String     @id @default(cuid())
-  name         String
-  type         AgentType
-  description  String?
-  departmentId String
-  department   Department @relation(fields: [departmentId], references: [id])
-  status       String     @default("active")
-  config       Json?      // Store agent-specific configuration
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-}
-
 enum AgentType {
+  // Core business operations
+  PRICING_OPTIMIZATION
+  MARKET_ANALYSIS
   CUSTOMER_SERVICE
   INVENTORY_MANAGEMENT
-  PRICING_OPTIMIZATION
-  SUPPLIER_COMMUNICATION
   ORDER_PROCESSING
+  SUPPLIER_COMMUNICATION
   QUALITY_CONTROL
   CODE_MAINTENANCE
+  
+  // Leadership roles
+  PRODUCT_LEADER
+  CUSTOMER_SUPPORT_LEADER
+  MARKET_RESEARCH_LEADER
+  OPERATIONS_LEADER
+  SALES_LEADER
+  
+  // Specialized roles
+  DOCUMENTATION_SPECIALIST
+  BLOG_CONTENT_CREATOR
 }
 
 enum SupplierIntegration {
@@ -205,4 +227,258 @@ enum SupplierIntegration {
   ALIEXPRESS
   TEMU
   AMAZON
+}
+
+enum AgentStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+  MAINTENANCE
+  CONNECTING
+  CONNECTED
+  DISCONNECTING
+  ERROR
+}
+
+model Agent {
+  id                String     @id @default(cuid())
+  name              String
+  type              AgentType
+  description       String?
+  departmentId      String
+  department        Department @relation(fields: [departmentId], references: [id])
+  status            AgentStatus @default(AVAILABLE)
+  config            Json?      // Store agent-specific configuration
+  capabilities      String[]   // Agent capabilities
+  level             Int        @default(1)
+  experiencePoints  Int        @default(0)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  metrics           AgentMetrics[]
+  recoveryLogs      AgentRecoveryLog[]
+  taskHistory       TaskHistory[]
+  optimizationLogs  OptimizationLog[]
+  learningPatterns  LearningPattern[]
+  achievements      Achievement[]
+  collaborations    AgentCollaboration[]
+  specializations   AgentSpecialization[]
+  feedbacks         AgentFeedback[]
+}
+
+// Agent monitoring and optimization
+model AgentRecoveryLog {
+  id          String   @id @default(cuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id])
+  timestamp   DateTime @default(now())
+  success     Boolean
+  attempts    Int
+  error       String?
+  metadata    Json?
+}
+
+model OptimizationLog {
+  id          String   @id @default(cuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id])
+  taskType    String
+  parameters  Json
+  timestamp   DateTime @default(now())
+  success     Boolean  @default(true)
+}
+
+model TaskHistory {
+  id          String   @id @default(cuid())
+  taskId      String
+  type        String
+  status      String
+  assignedTo  String
+  agent       Agent    @relation(fields: [assignedTo], references: [id])
+  priority    Int      @default(1)
+  metadata    Json?
+  timestamp   DateTime @default(now())
+}
+
+model SystemOptimization {
+  id              String   @id @default(cuid())
+  timestamp       DateTime @default(now())
+  overallScore    Float
+  efficiency      Float
+  reliability     Float
+  performance     Float
+  recommendations Json?
+}
+
+model OptimizationSuggestion {
+  id                  String   @id @default(cuid())
+  description         String   @db.Text
+  type                String   // prompt_improvement, parameter_adjustment, workflow_change
+  confidence          Float    @default(0.5)
+  implementationDetails Json?
+  priority            Int
+  implemented         Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  implementedAt       DateTime?
+}
+
+model AgentMetrics {
+  id                    String   @id @default(cuid())
+  agentId              String
+  agent                Agent    @relation(fields: [agentId], references: [id])
+  totalInteractions    Int      @default(0)
+  successfulInteractions Int    @default(0)
+  averageResponseTime  Float    @default(0)
+  errorRate           Float    @default(0)
+  lastActive          DateTime
+  timestamp           DateTime @default(now())
+}
+
+model SystemMetrics {
+  id          String   @id @default(cuid())
+  status      String
+  load        Float
+  errorRate   Float
+  uptime      Float
+  timestamp   DateTime @default(now())
+}
+
+// New models for enhanced agent system
+model LearningPattern {
+  id              String   @id @default(cuid())
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  taskType        String
+  successPatterns Json     // Patterns that lead to success
+  failurePatterns Json     // Patterns that lead to failure
+  confidence      Float    @default(0.5)
+  lastUpdated     DateTime @default(now())
+  createdAt       DateTime @default(now())
+}
+
+model Achievement {
+  id              String   @id @default(cuid())
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  name            String
+  description     String
+  pointsAwarded   Int
+  achievedAt      DateTime @default(now())
+}
+
+model AgentCollaboration {
+  id              String   @id @default(cuid())
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  collaboratorId  String   // ID of the agent collaborated with
+  taskId          String?  // Optional reference to the task
+  successRate     Float    @default(0)
+  frequency       Int      @default(0)
+  lastCollaborated DateTime @default(now())
+  createdAt       DateTime @default(now())
+}
+
+model AgentSpecialization {
+  id              String   @id @default(cuid())
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  taskType        String
+  proficiencyScore Float   @default(0)
+  tasksCompleted  Int      @default(0)
+  successRate     Float    @default(0)
+  lastUpdated     DateTime @default(now())
+}
+
+model AgentFeedback {
+  id              String   @id @default(cuid())
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  taskId          String
+  feedback        String   @db.Text
+  sentiment       String   @default("neutral") // positive, negative, neutral
+  applied         Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  appliedAt       DateTime?
+}
+
+// Models required by CustomerSupportAgent
+model CustomerInteraction {
+    id                  String   @id @default(cuid())
+    customerId          String
+    customer            Customer @relation(fields: [customerId], references: [id])
+    inquiryId           String
+    category            String?
+    message             String   @db.Text
+    response            String   @db.Text
+    sentiment           String?
+    requiresHumanReview Boolean
+    createdAt           DateTime @default(now())
+}
+
+model KnowledgeBaseArticle {
+    id          String   @id @default(cuid())
+    title       String
+    content     String   @db.Text
+    categories  String[]
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+}
+
+model Return {
+    id          String      @id @default(cuid())
+    orderId     String
+    order       Order       @relation(fields: [orderId], references: [id])
+    customerId  String
+    customer    Customer    @relation(fields: [customerId], references: [id])
+    reason      String
+    status      String
+    returnItems ReturnItem[]
+    createdAt   DateTime    @default(now())
+}
+
+model ReturnItem {
+  id          String    @id @default(cuid())
+  returnId    String
+  return      Return    @relation(fields: [returnId], references: [id])
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  quantity    Int
+}
+
+model Complaint {
+    id          String    @id @default(cuid())
+    customerId  String
+    customer    Customer  @relation(fields: [customerId], references: [id])
+    orderId     String?
+    order       Order?    @relation(fields: [orderId], references: [id])
+    message     String    @db.Text
+    severity    String    // e.g., low, medium, high
+    status      String    // e.g., open, in_progress, resolved
+    resolution  String?   @db.Text
+    resolvedAt  DateTime?
+    createdAt   DateTime  @default(now())
+}
+
+model Feedback {
+    id          String   @id @default(cuid())
+    customerId  String?
+    customer    Customer? @relation(fields: [customerId], references: [id])
+    orderId     String?
+    order       Order? @relation(fields: [orderId], references: [id])
+    productId   String?
+    product     Product? @relation(fields: [productId], references: [id])
+    content     String   @db.Text
+    source      String   // e.g., email, website, survey
+    feedbackAnalysis FeedbackAnalysis?
+    createdAt   DateTime @default(now())
+}
+
+model FeedbackAnalysis {
+    id                  String   @id @default(cuid())
+    feedbackId          String   @unique
+    feedback            Feedback @relation(fields: [feedbackId], references: [id])
+    sentiment           String?
+    keyPoints           String[]
+    actionableInsights  String[]
+    priority            String?
+    createdAt           DateTime @default(now())
 }

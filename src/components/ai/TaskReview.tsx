@@ -1,139 +1,101 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
-import { Badge } from "../ui/badge";
-import { aiService } from "@/lib/ai";
-import { TaskValidator, Task } from "@/lib/ai/core/TaskValidator";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
+import { AIService } from '@/lib/ai';
+import type { Task } from '@/lib/ai/types';
 
-const taskValidator = new TaskValidator();
-
-export interface Task {
-  id: string;
-  type: string;
-  departments: string[];
-  created_at: string;
-  status: string;
+interface TaskReviewProps {
+  className?: string;
+  children?: React.ReactNode;
 }
 
-interface TaskReviewFeedback {
-  comments: string;
-  modifications?: unknown;
+export function TaskReview({ className, children }: TaskReviewProps) {
+  const queryClient = useQueryClient();
+  const aiService = new AIService();
+
+  const { data: tasks, isLoading } = useQuery<Task[]>({
+    queryKey: ['tasks'],
+    queryFn: () => aiService.listAllTasks()
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (taskId: string) => aiService.updateTaskStatus(taskId, 'completed'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (taskId: string) => aiService.updateTaskStatus(taskId, 'failed'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+  });
+
+  if (isLoading) {
+    return <div>Loading tasks...</div>;
+  }
+
+  return (
+    <div className={cn("space-y-6", className)}>
+      <div className="grid gap-4">
+        {tasks?.map(task => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            onApprove={() => approveMutation.mutate(task.id)}
+            onReject={() => rejectMutation.mutate(task.id)}
+          />
+        ))}
+      </div>
+      {children}
+    </div>
+  );
 }
 
-export function TaskReview() {
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string>("");
+interface TaskCardProps {
+  task: Task;
+  onApprove: () => void;
+  onReject: () => void;
+}
 
-  const { data: tasks, refetch } = useQuery({
-    queryKey: ["pending-tasks"],
-    queryFn: async () => {
-      const allTasks = await aiService.manager.listTasks();
-      return (allTasks as Task[]).filter(task => task.status === "needs_review");
-    }
-  });
-
-  const { data: validationReport, isLoading: validating } = useQuery({
-    queryKey: ["task-validation", selectedTaskId],
-    queryFn: async () => {
-      if (!selectedTaskId) return null;
-      const task = tasks?.find(t => t.id === selectedTaskId);
-      if (!task) return null;
-      return await taskValidator.generateValidationReport(task);
-    },
-    enabled: !!selectedTaskId
-  });
-
-  const handleApprove = async () => {
-    if (!selectedTaskId) return;
-    await aiService.manager.updateTaskStatus(selectedTaskId, "completed", feedback);
-    setSelectedTaskId(null);
-    setFeedback("");
-    refetch();
-  };
-
-  const handleReject = async () => {
-    if (!selectedTaskId) return;
-    await aiService.manager.updateTaskStatus(selectedTaskId, "failed", feedback);
-    setSelectedTaskId(null);
-    setFeedback("");
-    refetch();
+function TaskCard({ task, onApprove, onReject }: TaskCardProps) {
+  const statusColors = {
+    pending: "bg-yellow-100 text-yellow-800",
+    in_progress: "bg-blue-100 text-blue-800",
+    completed: "bg-green-100 text-green-800",
+    failed: "bg-red-100 text-red-800",
+    needs_review: "bg-purple-100 text-purple-800"
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Task Review Queue</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {/* Task List */}
-          <div className="space-y-2">
-            {tasks?.map((task) => (
-              <div
-                key={task.id}
-                className={`p-4 border rounded cursor-pointer ${
-                  selectedTaskId === task.id ? "border-primary" : ""
-                }`}
-                onClick={() => setSelectedTaskId(task.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium capitalize">
-                      {task.type.replace(/_/g, " ")}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Departments: {task.departments.join(", ")}
-                    </p>
-                  </div>
-                  <Badge>{new Date(task.created_at).toLocaleDateString()}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Validation Report */}
-          {selectedTaskId && validationReport && (
-            <div className="space-y-2">
-              <h3 className="font-medium">Automated Validation</h3>
-              <pre className="p-4 bg-muted rounded text-sm whitespace-pre-wrap">
-                {validationReport}
-              </pre>
-            </div>
-          )}
-
-          {/* Review Form */}
-          {selectedTaskId && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Feedback</label>
-                <Textarea
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="Enter your feedback..."
-                  className="h-32"
-                />
-              </div>
-
-              <div className="flex space-x-2">
-                <Button onClick={handleApprove} className="flex-1">
-                  Approve
-                </Button>
-                <Button onClick={handleReject} variant="destructive" className="flex-1">
-                  Reject
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {tasks?.length === 0 && (
-            <p className="text-center text-muted-foreground">
-              No tasks waiting for review
-            </p>
-          )}
+    <div className="p-4 bg-card rounded-lg space-y-3">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-medium">{task.type}</h3>
+          <p className="text-sm text-muted-foreground">{JSON.stringify(task.data)}</p>
         </div>
-      </CardContent>
-    </Card>
+        <span className={cn("px-2 py-1 text-xs rounded-full", statusColors[task.status])}>
+          {task.status}
+        </span>
+      </div>
+      
+      <div className="text-sm text-muted-foreground">
+        <p>Departments: {task.departments.join(", ")}</p>
+        <p>Created: {new Date(task.created_at).toLocaleDateString()}</p>
+      </div>
+
+      {task.status === 'pending' && (
+        <div className="flex gap-2">
+          <button
+            onClick={onApprove}
+            className="px-3 py-1 bg-green-500 text-white rounded-md text-sm hover:bg-green-600"
+          >
+            Approve
+          </button>
+          <button
+            onClick={onReject}
+            className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600"
+          >
+            Reject
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { aiService } from "@/lib/ai";
+import { AIService } from "@/lib/ai";
 
 interface Strategy {
   strategy: string;
@@ -11,12 +11,12 @@ interface Strategy {
 
 interface DepartmentPerformance {
   successRate: number;
-  averageValidationScore: number;
+  averageCompletionTime: number;
   taskCount: number;
 }
 
 interface TaskInsights {
-  successfulStrategies: Strategy[];
+  successfulStrategies: string[];
   departmentPerformance: Record<string, DepartmentPerformance>;
   recentLearnings: string[];
 }
@@ -27,26 +27,36 @@ interface TaskTypeInsights {
 }
 
 interface PerformanceChartData {
-  name: string;
-  successRate: string;
-  validationScore: string;
-  taskCount: number;
+  department: string;
+  successRate: number;
+  completionTime: number;
 }
 
 export function AgentLearning() {
-  const { data: insights } = useQuery<TaskTypeInsights[]>({
-    queryKey: ["agent-learning"],
+  const { data: taskInsights } = useQuery<TaskTypeInsights[]>({
+    queryKey: ['task-insights'],
     queryFn: async () => {
-      const taskTypes = ["product_optimization", "marketing_strategy", "inventory_forecast"];
-      return Promise.all(
-        taskTypes.map(async (type: string) => ({
-          type,
-          insights: await aiService.manager.getTaskInsights(type)
-        }))
-      );
-    },
-    refetchInterval: 60000 // Refresh every minute
+      const aiService = new AIService();
+      const insights = await aiService.getTaskTypeInsights();
+      return insights.map(insight => ({
+        type: insight.type,
+        insights: {
+          successfulStrategies: insight.data.strategies || [],
+          departmentPerformance: insight.data.performance || {},
+          recentLearnings: insight.data.learnings || []
+        }
+      }));
+    }
   });
+
+  if (!taskInsights?.length) return null;
+
+  const performanceData = Object.entries(taskInsights[0].insights.departmentPerformance)
+    .map(([dept, perf]) => ({
+      department: dept,
+      successRate: perf.successRate,
+      completionTime: perf.averageCompletionTime
+    }));
 
   return (
     <Card>
@@ -62,16 +72,13 @@ export function AgentLearning() {
           </TabsList>
           <TabsContent value="strategies">
             <div className="space-y-6">
-              {insights?.map(({ type, insights }: TaskTypeInsights) => (
+              {taskInsights?.map(({ type, insights }: TaskTypeInsights) => (
                 <div key={type} className="space-y-2">
                   <h3 className="font-medium capitalize">{type.replace(/_/g, ' ')}</h3>
                   <div className="grid grid-cols-1 gap-2">
-                    {insights.successfulStrategies.map((strategy: Strategy, index: number) => (
+                    {insights.successfulStrategies.map((strategy: string, index: number) => (
                       <div key={index} className="flex justify-between p-2 bg-muted rounded">
-                        <span className="text-sm">{strategy.strategy}</span>
-                        <span className="text-sm font-medium">
-                          {(strategy.successRate * 100).toFixed(1)}%
-                        </span>
+                        <span className="text-sm">{strategy}</span>
                       </div>
                     ))}
                   </div>
@@ -80,26 +87,21 @@ export function AgentLearning() {
             </div>
           </TabsContent>
           <TabsContent value="performance">
-            {insights?.[0] && (
+            {taskInsights?.[0] && (
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={Object.entries(insights[0].insights.departmentPerformance).map(([dept, perf]: [string, DepartmentPerformance]): PerformanceChartData => ({
-                  name: dept,
-                  successRate: (perf.successRate * 100).toFixed(1),
-                  validationScore: (perf.averageValidationScore * 100).toFixed(1),
-                  taskCount: perf.taskCount
-                }))}>
-                  <XAxis dataKey="name" />
+                <LineChart data={performanceData}>
+                  <XAxis dataKey="department" />
                   <YAxis />
                   <Tooltip />
                   <Line type="monotone" dataKey="successRate" name="Success Rate %" stroke="#10b981" />
-                  <Line type="monotone" dataKey="validationScore" name="Validation Score %" stroke="#6366f1" />
+                  <Line type="monotone" dataKey="completionTime" name="Completion Time" stroke="#6366f1" />
                 </LineChart>
               </ResponsiveContainer>
             )}
           </TabsContent>
           <TabsContent value="learnings">
             <div className="space-y-4">
-              {insights?.map(({ type, insights }: TaskTypeInsights) => (
+              {taskInsights?.map(({ type, insights }: TaskTypeInsights) => (
                 <div key={type} className="space-y-2">
                   <h3 className="font-medium capitalize">{type.replace(/_/g, ' ')}</h3>
                   <ul className="space-y-2">
@@ -116,5 +118,14 @@ export function AgentLearning() {
         </Tabs>
       </CardContent>
     </Card>
+  );
+}
+
+function PerformanceChart({ data }: { data: PerformanceChartData[] }) {
+  // Implement your chart component here
+  return (
+    <div className="h-64 bg-card rounded-lg p-4">
+      {/* Chart implementation */}
+    </div>
   );
 }

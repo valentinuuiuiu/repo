@@ -96,10 +96,8 @@ const DashboardSidebar = ({
         <div className="flex items-center justify-between">
           {!collapsed && <h1 className="text-xl font-bold">Dropship</h1>}
           <Button
-            variant="ghost"
-            size="icon"
-            className="ml-auto"
             onClick={onToggleCollapse}
+            className="ml-auto"
           >
             <LayoutGrid size={20} />
           </Button>
@@ -112,10 +110,10 @@ const DashboardSidebar = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={item.isActive ? "default" : "ghost"}
                   className={cn(
                     "w-full justify-start",
                     collapsed ? "justify-center" : "",
+                    item.isActive ? "bg-primary text-primary-foreground" : "bg-transparent"
                   )}
                   asChild
                 >
@@ -140,7 +138,6 @@ const DashboardSidebar = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
                 className={cn(
                   "w-full justify-start",
                   collapsed ? "justify-center" : "",

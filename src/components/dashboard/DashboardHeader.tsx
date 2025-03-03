@@ -64,7 +64,7 @@ const DashboardHeader = ({
           {/* Notifications */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon">
                 <Bell className="h-5 w-5" />
                 {notificationCount > 0 && (
                   <span className="absolute top-1 right-1 h-4 w-4 text-xs flex items-center justify-center bg-red-500 text-white rounded-full">
@@ -94,7 +94,7 @@ const DashboardHeader = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger>
                   <Button variant="ghost" size="icon">
                     <Globe className="h-5 w-5" />
                   </Button>
@@ -123,7 +123,7 @@ const DashboardHeader = ({
 
         {/* User Menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger>
             <Button variant="ghost"  className="gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={userAvatar} alt={userName} />

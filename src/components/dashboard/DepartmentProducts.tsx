@@ -95,7 +95,7 @@ const columns = [
     cell: ({ row }) => {
       const status = row.getValue("status") as string
       return (
-        <Badge variant={status === "active" ? "success" : "secondary"}>
+        <Badge variant={status === "active" ? "outline" : "secondary"}>
           {status}
         </Badge>
       )

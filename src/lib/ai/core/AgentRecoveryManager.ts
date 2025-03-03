@@ -1,125 +1,125 @@
-import { CircuitState } from "./CircuitBreaker";
-import { BaseAgent } from "./BaseAgent";
-import type { Task } from "../types";
+import { CircuitState } from './CircuitBreaker'; // Ensure CircuitState is imported
+import { BaseAgent } from './BaseAgent';
+import { AgentMonitor } from './AgentMonitor';
+import { PrismaClient } from '@prisma/client';
 
-interface RecoveryStrategy {
-  name: string;
-  condition: (metrics: any) => boolean;
-  action: (agent: BaseAgent) => Promise<void>;
-  cooldown: number;
+const prisma = new PrismaClient();
+
+interface CircuitBreakerMetrics {
+  state: CircuitState;
+  failureCount: number;
+  successCount: number;
+  lastFailureTime: number;
+}
+
+interface AgentStatus {
+  status: "active" | "degraded" | "inactive";
+  lastError?: string;
+  circuitBreakerMetrics?: CircuitBreakerMetrics;
 }
 
 export class AgentRecoveryManager {
-  private lastRecoveryAttempts: Map<string, number> = new Map();
-  private recoveryStrategies: RecoveryStrategy[] = [
-    {
-      name: "circuit-reset",
-      condition: (metrics) => 
-        metrics.circuitBreakerMetrics?.state === CircuitState.OPEN &&
-        Date.now() - metrics.circuitBreakerMetrics.lastFailureTime > 30000,
-      action: async (agent) => {
-        await agent.initialize();
-      },
-      cooldown: 60000 // 1 minute
-    },
-    {
-      name: "performance-degradation",
-      condition: (metrics) => 
-        metrics.status === 'degraded' &&
-        metrics.circuitBreakerMetrics?.failureCount > 3,
-      action: async (agent) => {
-        await agent.recalibrate?.();
-      },
-      cooldown: 300000 // 5 minutes
-    },
-    {
-      name: "resource-exhaustion",
-      condition: (metrics) => 
-        metrics.status === 'inactive' &&
-        metrics.circuitBreakerMetrics?.state === CircuitState.OPEN,
-      action: async (agent) => {
-        await agent.shutdown();
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        await agent.initialize();
-      },
-      cooldown: 600000 // 10 minutes
-    }
-  ];
+  private monitor: AgentMonitor;
+  private readonly maxRetries = 3;
+  private readonly backoffMultiplier = 1.5;
+  private readonly initialDelay = 1000;
+
+  constructor() {
+    this.monitor = new AgentMonitor();
+  }
 
   async attemptRecovery(agent: BaseAgent): Promise<boolean> {
-    const agentMetrics = agent.getStatus();
-    const agentId = (agent as any).name;
+    const state = this.monitor.getAgentState(agent.name);
+    if (!state) return false;
 
-    for (const strategy of this.recoveryStrategies) {
-      if (!this.canAttemptStrategy(agentId, strategy)) {
-        continue;
-      }
+    if (state.status === 'error') {
+      return this.executeRecoveryStrategy(agent);
+    }
 
-      if (strategy.condition(agentMetrics)) {
-        try {
-          await strategy.action(agent);
-          this.lastRecoveryAttempts.set(
-            this.getStrategyKey(agentId, strategy),
-            Date.now()
-          );
+    return true;
+  }
+
+  private async executeRecoveryStrategy(agent: BaseAgent): Promise<boolean> {
+    let currentDelay = this.initialDelay;
+    let attempts = 0;
+
+    while (attempts < this.maxRetries) {
+      try {
+        // Try to restart the agent
+        await this.restartAgent(agent);
+        
+        // Verify agent health
+        const isHealthy = await this.verifyAgentHealth(agent);
+        if (isHealthy) {
+          this.monitor.recordSuccess(agent.name);
           return true;
-        } catch (error) {
-          console.error(
-            `Recovery strategy ${strategy.name} failed for agent ${agentId}:`,
-            error
-          );
         }
+
+        // Exponential backoff
+        attempts++;
+        currentDelay *= this.backoffMultiplier;
+        await new Promise(resolve => setTimeout(resolve, currentDelay));
+      } catch (error) {
+        this.monitor.recordError(agent.name, error as Error);
+        attempts++;
+        currentDelay *= this.backoffMultiplier;
+        await new Promise(resolve => setTimeout(resolve, currentDelay));
       }
     }
 
+    // If we get here, recovery failed
+    await this.logFailedRecovery(agent);
     return false;
   }
 
-  private canAttemptStrategy(agentId: string, strategy: RecoveryStrategy): boolean {
-    const lastAttempt = this.lastRecoveryAttempts.get(
-      this.getStrategyKey(agentId, strategy)
-    );
-    
-    if (!lastAttempt) return true;
-    
-    return Date.now() - lastAttempt > strategy.cooldown;
-  }
-
-  private getStrategyKey(agentId: string, strategy: RecoveryStrategy): string {
-    return `${agentId}-${strategy.name}`;
-  }
-
-  async monitorAndRecover(
-    agents: Record<string, BaseAgent>,
-    recentTasks: Task[]
-  ): Promise<void> {
-    const recoveryPromises = Object.values(agents).map(async (agent) => {
-      const metrics = agent.getStatus();
-      
-      if (metrics.status !== 'active') {
-        const agentTasks = recentTasks.filter(task => 
-          task.departments.includes((agent as any).name)
-        );
-        
-        const failureRate = this.calculateFailureRate(agentTasks);
-        
-        if (failureRate > 0.3) { // More than 30% failure rate
-          await this.attemptRecovery(agent);
-        }
+  private async restartAgent(agent: BaseAgent): Promise<void> {
+    // Reset agent state
+    await prisma.agent.update({
+      where: { id: agent.name },
+      data: { 
+        status: 'RESTARTING',
+        lastRestart: new Date()
       }
     });
 
-    await Promise.all(recoveryPromises);
+    // Allow agent to reinitialize
+    await agent.initialize();
+
+    await prisma.agent.update({
+      where: { id: agent.name },
+      data: { status: 'ACTIVE' }
+    });
   }
 
-  private calculateFailureRate(tasks: Task[]): number {
-    if (tasks.length === 0) return 0;
-    
-    const failures = tasks.filter(task => 
-      task.status === 'failed' || 
-      task.status === 'needs_review'
-    ).length;
-    
-    return failures / tasks.length;
+  private async verifyAgentHealth(agent: BaseAgent): Promise<boolean> {
+    try {
+      const status = await agent.getStatus();
+      return status.level > 0; // Any positive level indicates basic functionality
+    } catch {
+      return false;
+    }
+  }
+
+  private async logFailedRecovery(agent: BaseAgent): Promise<void> {
+    await prisma.agentRecoveryLog.create({
+      data: {
+        agentId: agent.name,
+        timestamp: new Date(),
+        success: false,
+        attempts: this.maxRetries
+      }
+    });
+  }
+
+  // Other methods...
+
+  checkAgentStatus(agent: AgentStatus) {
+    if (agent.status === "active") {
+      // Logic for active agents
+    } else if (agent.status === "degraded") {
+      // Logic for degraded agents
+    } else {
+      // Logic for inactive agents
+    }
   }
 }

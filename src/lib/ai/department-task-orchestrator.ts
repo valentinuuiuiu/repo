@@ -1,161 +1,158 @@
-import { AgentType } from '@prisma/client'
-import { AgentCoordinator } from './agent-coordinator'
-import { departmentAgentConfigs } from './department-agents'
-import { useAgentStore } from './agent-monitoring'
+import { AgentCategory } from '@/config/agents';
+import { AgentManager } from './core/AgentManager';
+import { departmentWorkflows } from './department-workflows';
+import { AgentAnalytics } from './core/AgentAnalytics';
 
-interface TaskDefinition {
-  id: string
-  name: string
-  department: string
-  requiredAgents: AgentType[]
-  steps: {
-    id: string
-    agentType: AgentType
-    action: string
-    requiredData: string[]
-    dependsOn: string[]
-    timeout: number
-  }[]
+export interface TaskDefinition {
+  id: string;
+  action: string;
+  agentType: string;
+  dependsOn: string[];
+  validationRules?: string[];
 }
 
-interface TaskContext {
-  taskId: string
-  departmentId: string
-  data: Record<string, any>
-  status: 'pending' | 'in-progress' | 'completed' | 'failed'
-  stepResults: Record<string, any>
+interface WorkflowProgress {
+  stepId: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'failed';
+  result?: any;
+  startTime?: Date;
+  endTime?: Date;
 }
 
 export class DepartmentTaskOrchestrator {
-  private coordinator: AgentCoordinator
-  private tasks: Map<string, TaskContext> = new Map()
+  private departmentId: string;
+  private agentManager: AgentManager;
+  private analytics: AgentAnalytics;
+  private workflowProgress: Map<string, WorkflowProgress[]>;
 
   constructor(departmentId: string) {
-    this.coordinator = new AgentCoordinator(departmentId)
+    this.departmentId = departmentId;
+    this.agentManager = new AgentManager();
+    this.analytics = new AgentAnalytics();
+    this.workflowProgress = new Map();
   }
 
-  async executeTask(definition: TaskDefinition, initialData: Record<string, any>) {
-    const context: TaskContext = {
-      taskId: crypto.randomUUID(),
-      departmentId: definition.department,
-      data: initialData,
-      status: 'pending',
-      stepResults: {}
-    }
-
-    this.tasks.set(context.taskId, context)
+  async executeTask(workflow: any, initialData: any) {
+    const workflowId = workflow.id;
+    const progress: WorkflowProgress[] = workflow.steps.map(step => ({
+      stepId: step.id,
+      status: 'pending'
+    }));
+    
+    this.workflowProgress.set(workflowId, progress);
 
     try {
-      context.status = 'in-progress'
+      const results = {};
       
-      // Create a graph of task dependencies
-      const graph = new Map(
-        definition.steps.map(step => [
-          step.id,
-          { step, dependencies: step.dependsOn, completed: false }
-        ])
-      )
-
-      // Execute steps based on dependencies
-      while ([...graph.values()].some(node => !node.completed)) {
-        const readySteps = [...graph.entries()].filter(([_, node]) => {
-          return !node.completed && 
-                 node.dependencies.every(depId => 
-                   graph.get(depId)?.completed
-                 )
-        })
-
-        if (readySteps.length === 0) {
-          throw new Error('Deadlock detected in task execution')
+      // Execute steps in order, respecting dependencies
+      for (const step of workflow.steps) {
+        // Check if dependencies are met
+        const canExecute = this.checkDependencies(step, results);
+        if (!canExecute) {
+          throw new Error(`Dependencies not met for step ${step.id}`);
         }
 
-        // Execute ready steps in parallel
-        await Promise.all(
-          readySteps.map(async ([stepId, { step }]) => {
-            try {
-              const result = await this.executeStep(step, context)
-              context.stepResults[stepId] = result
-              graph.get(stepId)!.completed = true
+        // Update step status
+        const stepProgress = progress.find(p => p.stepId === step.id);
+        if (stepProgress) {
+          stepProgress.status = 'in-progress';
+          stepProgress.startTime = new Date();
+        }
 
-              // Log metrics
-              useAgentStore.getState().addMetric(step.agentType, {
-                timestamp: Date.now(),
-                success: true,
-                duration: result.duration,
-                type: step.action,
-                department: definition.department,
-                details: { taskId: context.taskId, stepId }
-              })
-            } catch (error) {
-              useAgentStore.getState().addMetric(step.agentType, {
-                timestamp: Date.now(),
-                success: false,
-                duration: 0,
-                type: step.action,
-                department: definition.department,
-                details: { taskId: context.taskId, stepId, error }
-              })
-              throw error
+        // Execute step
+        try {
+          const result = await this.executeWorkflowStep(
+            step,
+            {
+              ...initialData,
+              previousResults: results
             }
-          })
-        )
+          );
+
+          // Store result
+          results[step.id] = result;
+
+          // Update progress
+          if (stepProgress) {
+            stepProgress.status = 'completed';
+            stepProgress.result = result;
+            stepProgress.endTime = new Date();
+          }
+
+          // Track analytics
+          this.analytics.trackAgentResponse(
+            step.agentType,
+            { type: step.action, data: initialData, departments: [this.departmentId] },
+            { success: true, data: result }
+          );
+
+        } catch (error) {
+          if (stepProgress) {
+            stepProgress.status = 'failed';
+            stepProgress.endTime = new Date();
+          }
+          throw error;
+        }
       }
 
-      context.status = 'completed'
-      return context.stepResults
+      return {
+        workflowId,
+        success: true,
+        results,
+        analytics: this.getWorkflowAnalytics(workflowId)
+      };
 
     } catch (error) {
-      context.status = 'failed'
-      throw error
+      console.error(`Workflow ${workflowId} failed:`, error);
+      return {
+        workflowId,
+        success: false,
+        error: error.message,
+        analytics: this.getWorkflowAnalytics(workflowId)
+      };
     }
   }
 
-  private async executeStep(
-    step: TaskDefinition['steps'][0], 
-    context: TaskContext
-  ) {
-    const startTime = Date.now()
-    
-    // Find available agent of required type
-    const message = {
-      action: step.action,
-      data: {
-        ...context.data,
-        stepResults: context.stepResults
-      },
-      priority: 5
+  private async executeWorkflowStep(step: any, context: any) {
+    const agent = await this.agentManager.getAgent(step.agentType);
+    if (!agent) {
+      throw new Error(`Agent ${step.agentType} not found`);
     }
 
-    // Request execution from appropriate agent
-    const responsePromise = new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error(`Step ${step.id} timed out after ${step.timeout}ms`))
-      }, step.timeout)
+    return await agent.sendMessage(step.action, context);
+  }
 
-      const cleanup = this.coordinator.subscribe('orchestrator', (msg) => {
-        if (msg.type === 'response' && msg.payload.action === step.action) {
-          clearTimeout(timeout)
-          cleanup()
-          resolve(msg.payload.data)
-        }
-      })
-    })
+  private checkDependencies(step: any, results: Record<string, any>): boolean {
+    if (!step.dependsOn.length) return true;
+    return step.dependsOn.every(depId => results[depId] !== undefined);
+  }
 
-    // Broadcast task to all agents of required type
-    await this.coordinator.broadcast('orchestrator', message)
+  getWorkflowProgress(workflowId: string): WorkflowProgress[] | undefined {
+    return this.workflowProgress.get(workflowId);
+  }
 
-    const result = await responsePromise
+  private getWorkflowAnalytics(workflowId: string) {
+    const progress = this.workflowProgress.get(workflowId);
+    if (!progress) return null;
+
+    const completedSteps = progress.filter(p => p.status === 'completed').length;
+    const totalSteps = progress.length;
+    const failedSteps = progress.filter(p => p.status === 'failed').length;
+
+    const totalDuration = progress.reduce((total, step) => {
+      if (step.startTime && step.endTime) {
+        return total + (step.endTime.getTime() - step.startTime.getTime());
+      }
+      return total;
+    }, 0);
+
     return {
-      result,
-      duration: Date.now() - startTime
-    }
-  }
-
-  getTaskStatus(taskId: string) {
-    return this.tasks.get(taskId)?.status || null
-  }
-
-  getTaskResults(taskId: string) {
-    return this.tasks.get(taskId)?.stepResults || null
+      progress: (completedSteps / totalSteps) * 100,
+      successRate: ((completedSteps - failedSteps) / totalSteps) * 100,
+      averageStepDuration: totalDuration / completedSteps,
+      completedSteps,
+      totalSteps,
+      failedSteps
+    };
   }
 }

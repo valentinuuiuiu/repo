@@ -1,32 +1,125 @@
+import { AgentType, AgentStatus } from '@prisma/client';
+import { ProviderManager } from './providers/ProviderManager';
+
 export interface AgentInsight {
   id: string;
   name: string;
   result: string;
 }
 
-/**
- * Simulates fetching AI-generated insights for agents associated with a specific department.
- * In a production scenario, this could be replaced by an API call or complex computation.
- *
- * @param departmentId - The unique identifier of the department
- * @returns A promise that resolves to an array of AgentInsight objects
- */
-export async function getAgentInsights(departmentId: string): Promise<AgentInsight[]> {
-  // Dummy data for simulation
-  return Promise.resolve([
-    { id: '1', name: 'Customer Service', result: 'All systems operational.' },
-    { id: '2', name: 'Inventory Management', result: 'Stock levels are normal.' },
-    { id: '3', name: 'Pricing Optimization', result: 'Prices are competitive.' }
-  ]);
+interface AgentState {
+  agentId: string;
+  status: AgentStatus;
+  lastError?: string;
 }
 
-// Added aiService to provide dummy agent statuses
-export const aiService = {
-  getAgentStatuses: async (): Promise<Array<{ agentId: string; status: 'active' | 'inactive' | 'degraded'; lastError?: string }>> => {
-    return Promise.resolve([
-      { agentId: '1', status: 'active', lastError: '' },
-      { agentId: '2', status: 'active' },
-      { agentId: '3', status: 'active' }
-    ]);
+interface AgentConnection {
+  agentType: AgentType;
+  departmentId?: string;
+}
+
+class AgentService {
+  private initialized = false;
+
+  async initialize() {
+    if (this.initialized) {
+      return;
+    }
+
+    await ProviderManager.initializeProviders({
+      openaiApiKey: import.meta.env.VITE_OPENAI_API_KEY
+    });
+
+    this.initialized = true;
   }
-};
+
+  async connectAgent(agentType: AgentType, departmentId: string) {
+    try {
+      await this.initialize();
+      const provider = ProviderManager.getPrimaryProvider();
+
+      // Test the connection by sending a simple message
+      await provider.chat([{
+        role: 'system',
+        content: `You are now initializing as a ${agentType} agent.`
+      }]);
+
+      return {
+        success: true,
+        agent: {
+          type: agentType,
+          status: AgentStatus.BUSY,
+          departmentId
+        }
+      };
+    } catch (error) {
+      console.error('Failed to connect agent:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  async disconnectAgent(agentId: string) {
+    try {
+      // Simply mark the agent as available since there's no actual connection to close
+      return {
+        success: true
+      };
+    } catch (error) {
+      console.error('Failed to disconnect agent:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  async sendMessage(agentType: AgentType, message: string, context?: any) {
+    try {
+      await this.initialize();
+      const provider = ProviderManager.getPrimaryProvider();
+
+      const response = await provider.chat([
+        {
+          role: 'system',
+          content: `You are a ${agentType} agent. ${context ? JSON.stringify(context) : ''}`
+        },
+        {
+          role: 'user',
+          content: message
+        }
+      ]);
+
+      return {
+        success: true,
+        response: response.content
+      };
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  async getAllAgents() {
+    try {
+      // This would typically fetch from a database, but for now return an empty array
+      return {
+        success: true,
+        agents: []
+      };
+    } catch (error) {
+      console.error('Failed to get agents:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+}
+
+export const agentService = new AgentService();

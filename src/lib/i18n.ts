@@ -1,19 +1,28 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import en from '../locales/en.json';
-import ro from '../locales/ro.json';
 
+// Initialize i18next
 i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: en },
-      ro: { translation: ro },
+      en: {
+        translation: {
+          // English translations
+          welcome: 'Welcome to our application',
+        },
+      },
+      es: {
+        translation: {
+          // Spanish translations
+          welcome: 'Bienvenido a nuestra aplicación',
+        },
+      },
     },
-    lng: 'en', // default language
+    lng: 'en', // Default language
     fallbackLng: 'en',
     interpolation: {
-      escapeValue: false, // react already safes from xss
+      escapeValue: false, // React already escapes values
     },
   });
 

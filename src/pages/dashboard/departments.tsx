@@ -1,39 +1,40 @@
-import { Suspense } from "react"
-import { DepartmentLayout } from "@/components/DepartmentLayout"
+import { Suspense, useState, useEffect } from "react"
+import DepartmentLayout from "@/components/DepartmentLayout"
 import { DepartmentProducts } from "@/components/dashboard/DepartmentProducts"
 import { DepartmentSuppliers } from "@/components/dashboard/DepartmentSuppliers"
 import { DepartmentAgents } from "@/components/ai/DepartmentAgents"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 
+// Updated departments to match database structure from prisma/seed.ts
 const defaultDepartments = [
   {
-    id: "fashion",
-    name: "Fashion & Apparel",
-    code: "FASHION",
-    description: "Clothing, accessories, and fashion items",
-    stats: { products: 1250, suppliers: 45, agents: 8 }
+    id: "department-1",
+    name: "Engineering",
+    code: "ENG",
+    description: "Engineering and development department",
+    stats: { products: 150, suppliers: 20, agents: 2 }
   },
   {
-    id: "electronics",
-    name: "Electronics & Gadgets",
-    code: "ELECTRONICS",
-    description: "Consumer electronics and accessories",
-    stats: { products: 890, suppliers: 32, agents: 6 }
+    id: "department-2",
+    name: "Sales",
+    code: "SALES",
+    description: "Sales and marketing department",
+    stats: { products: 120, suppliers: 15, agents: 2 }
   },
   {
-    id: "home",
-    name: "Home & Living",
-    code: "HOME",
-    description: "Home decor, furniture, and living essentials",
-    stats: { products: 1100, suppliers: 38, agents: 7 }
+    id: "department-3",
+    name: "Support",
+    code: "SUPPORT",
+    description: "Customer support department",
+    stats: { products: 80, suppliers: 10, agents: 2 }
   },
   {
-    id: "beauty",
-    name: "Beauty & Personal Care",
-    code: "BEAUTY",
-    description: "Cosmetics, skincare, and personal care items",
-    stats: { products: 750, suppliers: 28, agents: 5 }
+    id: "department-4",
+    name: "Operations",
+    code: "OPS",
+    description: "Operations department",
+    stats: { products: 100, suppliers: 12, agents: 2 }
   }
 ]
 
@@ -51,8 +52,25 @@ function LoadingSkeleton() {
 }
 
 export default function DepartmentsPage() {
+  const [activeDepartmentId, setActiveDepartmentId] = useState(defaultDepartments[0]?.id || "");
+
+  // Listen for department changes from the DepartmentLayout component
+  const handleDepartmentChange = (departmentId: string) => {
+    setActiveDepartmentId(departmentId);
+  };
+
+  // Create a wrapped DepartmentLayout that passes our handler
+  const WrappedDepartmentLayout = ({ children }: { children: React.ReactNode }) => (
+    <DepartmentLayout 
+      departments={defaultDepartments}
+      onDepartmentChange={handleDepartmentChange}
+    >
+      {children}
+    </DepartmentLayout>
+  );
+  
   return (
-    <DepartmentLayout departments={defaultDepartments}>
+    <WrappedDepartmentLayout>
       <Tabs defaultValue="products" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 lg:max-w-[400px]">
           <TabsTrigger value="products">Products</TabsTrigger>
@@ -63,26 +81,26 @@ export default function DepartmentsPage() {
         <Suspense fallback={<LoadingSkeleton />}>
           <TabsContent value="products">
             <DepartmentProducts
-              departmentId="current"
+              departmentId={activeDepartmentId}
               initialData={[]}
             />
           </TabsContent>
           
           <TabsContent value="suppliers">
             <DepartmentSuppliers
-              departmentId="current"
+              departmentId={activeDepartmentId}
               suppliers={[]}
             />
           </TabsContent>
           
           <TabsContent value="agents">
             <DepartmentAgents
-              departmentId="current"
+              departmentId={activeDepartmentId}
               agents={[]}
             />
           </TabsContent>
         </Suspense>
       </Tabs>
-    </DepartmentLayout>
+    </WrappedDepartmentLayout>
   )
 }

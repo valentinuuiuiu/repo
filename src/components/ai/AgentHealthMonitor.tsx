@@ -1,16 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
+import { AIService } from '@/lib/ai';
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
 import { CircleSlash, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { aiService } from "@/lib/ai";
 
 interface HealthMetrics {
   uptime: number;
   activeAgents: number;
   totalAgents: number;
   recoverySuccessRate: number;
+  errorRate: number;
+  averageResponseTime: number;
   recentRecoveries: Array<{
     success: boolean;
     agentName: string;
@@ -27,10 +29,25 @@ interface HealthMetrics {
   }>;
 }
 
+const mapToHealthMetrics = (metrics: any): HealthMetrics => ({
+  uptime: metrics.uptime || 0,
+  activeAgents: metrics.activeAgents || 0,
+  totalAgents: metrics.totalAgents || 0,
+  recoverySuccessRate: metrics.recoveryRate || 0,
+  errorRate: metrics.errorRate || 0,
+  averageResponseTime: metrics.responseTime || 0,
+  recentRecoveries: metrics.recentRecoveries || [],
+  agentHealth: metrics.agentHealth || []
+});
+
 export function AgentHealthMonitor() {
-  const { data: healthMetrics } = useQuery<HealthMetrics, unknown, HealthMetrics>({
-    queryKey: ["agent-health"],
-    queryFn: () => aiService.manager.getHealthMetrics(),
+  const { data: healthMetrics } = useQuery<HealthMetrics>({
+    queryKey: ['agent-health'],
+    queryFn: async () => {
+      const aiService = new AIService();
+      const rawMetrics = await aiService.getAgentMetrics();
+      return mapToHealthMetrics(rawMetrics);
+    },
     refetchInterval: 10000 // Refresh every 10 seconds
   });
 
@@ -74,6 +91,18 @@ export function AgentHealthMonitor() {
               <div className="text-sm font-medium mb-2">Recovery Success</div>
               <div className="text-2xl font-bold">
                 {(healthMetrics.recoverySuccessRate * 100).toFixed(1)}%
+              </div>
+            </div>
+            <div className="p-4 bg-muted rounded">
+              <div className="text-sm font-medium mb-2">Error Rate</div>
+              <div className="text-2xl font-bold">
+                {(healthMetrics.errorRate * 100).toFixed(1)}%
+              </div>
+            </div>
+            <div className="p-4 bg-muted rounded">
+              <div className="text-sm font-medium mb-2">Avg Response Time</div>
+              <div className="text-2xl font-bold">
+                {healthMetrics.averageResponseTime}ms
               </div>
             </div>
           </div>

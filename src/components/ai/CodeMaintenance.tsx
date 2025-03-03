@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import type { VariantProps } from "class-variance-authority"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { CheckCircle2, XCircle, History } from "lucide-react"
 import { aiService } from "@/lib/ai"
 import { CodeBlock } from "../ui/code-block"
+import { Task, TaskType } from "@/lib/ai/types"
 
 interface CodeIssue {
   type: 'error' | 'warning' | 'suggestion';
@@ -18,39 +20,56 @@ interface CodeIssue {
   suggestedFix?: string;
 }
 
+interface CodeMetrics {
+  complexity: number;
+  maintainability: number;
+  duplicateCode: number;
+}
+
 interface CodeAnalysis {
   issues: CodeIssue[];
-  metrics: {
-    complexity: number;
-    maintainability: number;
-    duplicateCode: number;
-  };
+  metrics: CodeMetrics;
   suggestions: string[];
+}
+
+interface FixHistoryEntry {
+  file: string;
+  fix: string;
+  success: boolean;
+  timestamp: Date;
 }
 
 export function CodeMaintenance() {
   const [analysis, setAnalysis] = useState<CodeAnalysis | null>(null);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [fixHistory, setFixHistory] = useState<{
-    file: string;
-    fix: string;
-    success: boolean;
-    timestamp: Date;
-  }[]>([]);
+  const [error, setError] = useState<Error | null>(null);
+  const [fixHistory, setFixHistory] = useState<FixHistoryEntry[]>([]);
 
   const analyzeCode = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const result = await aiService.executeTask({
+      const task: Task = {
+        id: `analyze-${Date.now()}`,
         type: 'code_maintenance',
         data: { action: 'analyze' },
         departments: ['maintenance'],
-        priority: 'low'
-      });
-      setAnalysis(result.data);
-    } catch (error) {
-      console.error('Error analyzing code:', error);
+        priority: 'low',
+        status: 'pending',
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      const result = await aiService.executeTask(task);
+      
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Analysis failed');
+      }
+      
+      setAnalysis(result.data as CodeAnalysis);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      console.error('Error analyzing code:', err);
     } finally {
       setLoading(false);
     }
@@ -58,7 +77,8 @@ export function CodeMaintenance() {
 
   const handleFixIssue = async (issue: CodeIssue) => {
     try {
-      const result = await aiService.executeTask({
+      const task: Task = {
+        id: `fix-${Date.now()}`,
         type: 'code_maintenance',
         data: {
           action: 'fix',
@@ -67,53 +87,47 @@ export function CodeMaintenance() {
           suggestedFix: issue.suggestedFix
         },
         departments: ['maintenance'],
-        priority: 'medium'
-      });
+        priority: 'medium',
+        status: 'pending',
+        created_at: new Date(),
+        updated_at: new Date()
+      };
 
-      // Record fix success/failure for learning
-      await aiService.executeTask({
-        type: 'code_maintenance',
-        data: {
-          action: 'record_fix',
-          file: issue.file,
-          fix: issue.suggestedFix,
-          success: true
-        },
-        departments: ['maintenance'],
-        priority: 'low'
-      });
+      const result = await aiService.executeTask(task);
+      const success = result.success && !result.error;
 
-      setFixHistory(prev => [{
+      const newFixEntry: FixHistoryEntry = {
         file: issue.file,
         fix: issue.suggestedFix || '',
-        success: true,
+        success,
         timestamp: new Date()
-      }, ...prev]);
+      };
 
-      // Refresh analysis after fix
-      analyzeCode();
-    } catch (error) {
-      console.error('Error fixing issue:', error);
-      
-      // Record failed fix attempt
-      await aiService.executeTask({
-        type: 'code_maintenance',
-        data: {
-          action: 'record_fix',
-          file: issue.file,
-          fix: issue.suggestedFix,
-          success: false
-        },
-        departments: ['maintenance'],
-        priority: 'low'
-      });
+      setFixHistory(prev => [newFixEntry, ...prev]);
 
-      setFixHistory(prev => [{
-        file: issue.file,
-        fix: issue.suggestedFix || '',
-        success: false,
-        timestamp: new Date()
-      }, ...prev]);
+      if (success) {
+        const recordTask: Task = {
+          id: `record-${Date.now()}`,
+          type: 'code_maintenance',
+          data: {
+            action: 'record_fix',
+            file: issue.file,
+            fix: issue.suggestedFix,
+            success: true
+          },
+          departments: ['maintenance'],
+          priority: 'low',
+          status: 'pending',
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+
+        await aiService.executeTask(recordTask);
+        analyzeCode(); // Refresh analysis after successful fix
+      }
+    } catch (err) {
+      console.error('Error fixing issue:', err);
+      setError(err instanceof Error ? err : new Error('Failed to apply fix'));
     }
   };
 
@@ -125,7 +139,7 @@ export function CodeMaintenance() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant="outline">
                   <History className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -143,6 +157,13 @@ export function CodeMaintenance() {
         </div>
       </div>
 
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error.message}</AlertDescription>
+        </Alert>
+      )}
+
       <Tabs defaultValue="analysis">
         <TabsList>
           <TabsTrigger value="analysis">Analysis</TabsTrigger>
@@ -155,43 +176,42 @@ export function CodeMaintenance() {
               <Card className="p-4">
                 <h2 className="text-xl font-semibold mb-4">Code Health Metrics</h2>
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Complexity</p>
-                    <p className="text-2xl font-bold">
-                      {analysis.metrics.complexity.toFixed(1)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Maintainability</p>
-                    <p className="text-2xl font-bold">
-                      {analysis.metrics.maintainability.toFixed(1)}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Duplicate Code</p>
-                    <p className="text-2xl font-bold">
-                      {analysis.metrics.duplicateCode.toFixed(1)}%
-                    </p>
-                  </div>
+                  {Object.entries(analysis.metrics).map(([key, value]) => (
+                    <div key={key}>
+                      <p className="text-sm text-muted-foreground capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {typeof value === 'number' ? value.toFixed(1) : value}
+                        {key === 'duplicateCode' ? '%' : ''}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </Card>
 
               <Tabs defaultValue="issues">
                 <TabsList>
-                  <TabsTrigger value="issues">Issues ({analysis.issues.length})</TabsTrigger>
-                  <TabsTrigger value="suggestions">Suggestions ({analysis.suggestions.length})</TabsTrigger>
+                  <TabsTrigger value="issues">
+                    Issues ({analysis.issues.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="suggestions">
+                    Suggestions ({analysis.suggestions.length})
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="issues">
                   <ScrollArea className="h-[500px]">
                     <div className="space-y-4">
                       {analysis.issues.map((issue, index) => (
-                        <Alert key={index} variant={issue.type === 'error' ? 'destructive' : 'default'}>
+                        <Alert 
+                          key={index}
+                          variant={issue.type === 'error' ? 'destructive' : 'default'}
+                        >
                           <AlertTitle className="flex items-center gap-2">
                             <Badge variant={
                               issue.type === 'error' ? 'destructive' : 
-                              issue.type === 'warning' ? 'warning' : 
-                              'default'
+                              'secondary'
                             }>
                               {issue.type}
                             </Badge>
@@ -203,9 +223,8 @@ export function CodeMaintenance() {
                               <div className="mt-2">
                                 <CodeBlock code={issue.suggestedFix} language="typescript" />
                                 <Button 
-                                  variant="outline" 
-                                  size="sm" 
                                   className="mt-2"
+                                  variant="secondary"
                                   onClick={() => handleFixIssue(issue)}
                                 >
                                   Apply Fix
@@ -251,7 +270,7 @@ export function CodeMaintenance() {
                     </AlertTitle>
                     <AlertDescription className="mt-2">
                       <p className="text-sm text-muted-foreground">
-                        {new Date(fix.timestamp).toLocaleString()}
+                        {fix.timestamp.toLocaleString()}
                       </p>
                       <CodeBlock code={fix.fix} language="typescript" />
                     </AlertDescription>
@@ -263,5 +282,5 @@ export function CodeMaintenance() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

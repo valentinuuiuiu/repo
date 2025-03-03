@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Checkbox } from "../ui/checkbox";
-import { aiService } from "@/lib/ai";
 import { TaskType } from "@/lib/ai/types";
 
 const DEPARTMENTS = [
@@ -18,13 +16,11 @@ const DEPARTMENTS = [
 
 const TASK_TYPES: { value: TaskType; label: string }[] = [
   { value: "product_optimization", label: "Product Optimization" },
-  { value: "product_launch", label: "Product Launch" },
-  { value: "marketing_strategy", label: "Marketing Strategy" },
+  { value: "market_analysis", label: "Market Analysis" },
+  { value: "customer_inquiry", label: "Customer Inquiry" },
   { value: "inventory_forecast", label: "Inventory Forecast" },
   { value: "supplier_evaluation", label: "Supplier Evaluation" },
-  { value: "customer_inquiry", label: "Customer Inquiry" },
-  { value: "performance_analysis", label: "Performance Analysis" },
-  { value: "market_research", label: "Market Research" }
+  { value: "code_maintenance", label: "Code Maintenance" }
 ];
 
 export function TaskSubmission() {
@@ -39,12 +35,6 @@ export function TaskSubmission() {
     setIsSubmitting(true);
     
     try {
-      const task = await aiService.executeTask({
-        type: taskType,
-        data: JSON.parse(taskData),
-        departments: selectedDepartments,
-        priority
-      });
       
       // Reset form on success
       setSelectedDepartments([]);
@@ -102,7 +92,7 @@ export function TaskSubmission() {
                   <Checkbox
                     id={department.id}
                     checked={selectedDepartments.includes(department.id)}
-                    onCheckedChange={(checked) => {
+                    onCheckedChange={(checked: any) => {
                       if (checked) {
                         setSelectedDepartments([...selectedDepartments, department.id]);
                       } else {

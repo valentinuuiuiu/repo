@@ -1,4 +1,4 @@
-import { redisClient } from "../redis";
+import { redis } from "../redis";
 import { Order, OrderItem } from "@prisma/client";
 
 export const orderService = {
@@ -21,10 +21,10 @@ export const orderService = {
       limit = 20,
     } = params;
 
-    let orders = await redisClient.getAllOrders();
+    let orders = await redis.getAllOrders();
 
     // Apply filters
-    orders = orders.filter((order) => {
+    orders = orders.filter((order: any) => {
       if (status && order.status !== status) return false;
       if (customerId && order.customerId !== customerId) return false;
       if (supplierId && order.supplierId !== supplierId) return false;
@@ -38,7 +38,7 @@ export const orderService = {
 
     // Sort by createdAt
     orders.sort(
-      (a, b) =>
+      (a: any, b: any) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
@@ -57,14 +57,13 @@ export const orderService = {
     };
   },
 
-  async create(data: any) {
+  async create(data: { order: Order, items: OrderItem[] }) {
     const id = `${Date.now()}`;
     const order = {
-      id,
+      
       ...data.order,
-      items: data.items.map((item: any) => ({
-        id: `${Date.now()}-${Math.random()}`,
-        orderId: id,
+      items: data.items.map((item) => ({
+        itemId: `${Date.now()}-${Math.random()}`,
         ...item,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -73,15 +72,15 @@ export const orderService = {
       updatedAt: new Date().toISOString(),
     };
 
-    await redisClient.setOrder(id, order);
-    await redisClient.incrementOrderCount();
-    await redisClient.addToRevenue(order.total);
+    await redis.setOrder(id, order);
+    await redis.incrementOrderCount();
+    await redis.addToRevenue(order.total);
 
     return order;
   },
 
   async update(id: string, data: any) {
-    const order = await redisClient.getOrder(id);
+    const order = await redis.getOrder(id);
     if (!order) throw new Error("Order not found");
 
     const updatedOrder = {
@@ -90,14 +89,14 @@ export const orderService = {
       updatedAt: new Date().toISOString(),
     };
 
-    await redisClient.setOrder(id, updatedOrder);
+    await redis.setOrder(id, updatedOrder);
     return updatedOrder;
   },
 
   async delete(id: string) {
-    const order = await redisClient.getOrder(id);
+    const order = await redis.getOrder(id);
     if (!order) throw new Error("Order not found");
-    await redis.del(`order:${id}`);
+    await redis.redisClient.del(`order:${id}`);
     return order;
   },
 };

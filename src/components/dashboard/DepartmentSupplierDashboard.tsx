@@ -36,13 +36,13 @@ interface SupplierRanking {
   improvements: string[]
 }
 
-export function DepartmentSupplierDashboard({
+const DepartmentSupplierDashboard = ({
   departmentId,
   departmentType
 }: {
   departmentId: string
   departmentType: string
-}) {
+}) => {
   const [supplierMetrics, setSupplierMetrics] = useState<Record<string, SupplierMetrics>>({})
   const [rankings, setRankings] = useState<Record<string, SupplierRanking>>({})
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null)
@@ -315,3 +315,5 @@ export function DepartmentSupplierDashboard({
     </div>
   )
 }
+
+export default DepartmentSupplierDashboard;

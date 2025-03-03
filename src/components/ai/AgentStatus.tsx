@@ -1,128 +1,130 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
-import { Progress } from "../ui/progress";
-import { CircuitState } from "@/lib/ai/core/CircuitBreaker";
-import { aiService } from "@/lib/ai";
-
-interface CircuitBreakerMetrics {
-  state: CircuitState;
-  failureCount: number;
-  successCount: number;
-}
-
-interface AgentInfo {
-  status: string;
-  circuitBreakerMetrics?: CircuitBreakerMetrics;
-}
+import { useQuery } from '@tanstack/react-query';
+import { AIService } from '@/lib/ai';
 
 interface AgentStatus {
-  manager: AgentInfo;
-  departments: Record<string, AgentInfo>;
+  manager: {
+    status: string;
+    load: number;
+    errorRate: number;
+    uptime: number;
+  };
+  departments: Array<{
+    id: string;
+    name: string;
+    agentCount: number;
+    performance: number;
+  }>;
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'active':
-      return 'default';
-    case 'degraded':
-      return 'secondary';
-    case 'inactive':
-      return 'destructive';
-    default:
-      return 'secondary';
-  }
-};
-
-const getCircuitStateColor = (state: CircuitState) => {
-  switch (state) {
-    case CircuitState.CLOSED:
-      return 'default';
-    case CircuitState.HALF_OPEN:
-      return 'secondary';
-    case CircuitState.OPEN:
-      return 'destructive';
-    default:
-      return 'secondary';
-  }
-};
-
-export function AgentStatus() {
-  const { data: status, isLoading } = useQuery<AgentStatus, Error>({
-    queryKey: ["agent-status"],
-    queryFn: () => aiService.getAgentStatuses(),
-    refetchInterval: 5000
+export function AgentStatusComponent() {
+  const { data: status } = useQuery<AgentStatus>({
+    queryKey: ['agent-status'],
+    queryFn: async () => {
+      const aiService = new AIService();
+      const insights = await aiService.getAgentInsights();
+      
+      return {
+        manager: {
+          status: insights.systemStatus,
+          load: insights.currentLoad,
+          errorRate: insights.errorRate,
+          uptime: insights.uptime
+        },
+        departments: insights.departments.map(dept => ({
+          id: dept.id,
+          name: dept.name,
+          agentCount: dept.activeAgents,
+          performance: dept.performanceScore
+        }))
+      };
+    }
   });
 
-  if (isLoading || !status) return <div>Loading...</div>;
+  if (!status) return null;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>AI Agents Status</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h3 className="font-medium">Manager Status</h3>
-            <div className="flex items-center space-x-4">
-              <Badge variant={getStatusColor(status?.manager.status)}>
-                {status?.manager.status}
-              </Badge>
-              {status?.manager.circuitBreakerMetrics && (
-                <Badge variant={getCircuitStateColor(status.manager.circuitBreakerMetrics.state)}>
-                  Circuit: {status.manager.circuitBreakerMetrics.state}
-                </Badge>
-              )}
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="grid gap-4 grid-cols-4">
+        <StatusCard 
+          title="System Status" 
+          value={status.manager.status} 
+          type={status.manager.status.toLowerCase()}
+        />
+        <StatusCard 
+          title="Current Load" 
+          value={`${Math.round(status.manager.load)}%`}
+        />
+        <StatusCard 
+          title="Error Rate" 
+          value={`${Math.round(status.manager.errorRate)}%`}
+        />
+        <StatusCard 
+          title="Uptime" 
+          value={`${Math.round(status.manager.uptime)}%`}
+        />
+      </div>
 
-          <div className="space-y-4">
-            <h3 className="font-medium">Department Agents</h3>
-            <div className="grid grid-cols-1 gap-4">
-              {Object.entries(status?.departments || {}).map(([dept, info]: [string, any]) => (
-                <div
-                  key={dept}
-                  className="p-4 border rounded space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="capitalize font-medium">{dept}</span>
-                    <div className="flex space-x-2">
-                      <Badge variant={getStatusColor(info.status)}>
-                        {info.status}
-                      </Badge>
-                      {info.circuitBreakerMetrics && (
-                        <Badge variant={getCircuitStateColor(info.circuitBreakerMetrics.state)}>
-                          Circuit: {info.circuitBreakerMetrics.state}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  {info.circuitBreakerMetrics && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Health Score</span>
-                        <span>
-                          {Math.max(0, 100 - (info.circuitBreakerMetrics.failureCount * 20))}%
-                        </span>
-                      </div>
-                      <Progress 
-                        value={Math.max(0, 100 - (info.circuitBreakerMetrics.failureCount * 20))} 
-                        className="h-2"
-                      />
-                      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                        <div>Failures: {info.circuitBreakerMetrics.failureCount}</div>
-                        <div>Successes: {info.circuitBreakerMetrics.successCount}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Department Status</h3>
+        <div className="grid gap-4 grid-cols-3">
+          {status.departments.map(dept => (
+            <DepartmentCard
+              key={dept.id}
+              name={dept.name}
+              agentCount={dept.agentCount}
+              performance={dept.performance}
+            />
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+}
+
+interface StatusCardProps {
+  title: string;
+  value: string;
+  type?: string;
+}
+
+function StatusCard({ title, value, type }: StatusCardProps) {
+  const getStatusColor = (type?: string) => {
+    switch (type) {
+      case 'healthy':
+        return 'text-green-500';
+      case 'warning':
+        return 'text-yellow-500';
+      case 'error':
+        return 'text-red-500';
+      default:
+        return 'text-foreground';
+    }
+  };
+
+  return (
+    <div className="p-4 bg-card rounded-lg">
+      <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
+      <p className={`text-2xl font-bold ${type ? getStatusColor(type) : ''}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+interface DepartmentCardProps {
+  name: string;
+  agentCount: number;
+  performance: number;
+}
+
+function DepartmentCard({ name, agentCount, performance }: DepartmentCardProps) {
+  return (
+    <div className="p-4 bg-card rounded-lg">
+      <h4 className="text-sm font-medium text-muted-foreground">{name}</h4>
+      <div className="mt-2 space-y-1">
+        <p className="text-sm">Agents: {agentCount}</p>
+        <p className="text-sm">Performance: {Math.round(performance)}%</p>
+      </div>
+    </div>
   );
 }

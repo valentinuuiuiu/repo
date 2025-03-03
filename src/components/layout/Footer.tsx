@@ -1,108 +1,32 @@
-import { Github, Twitter, Linkedin } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Button } from "../ui/button";
+import React from 'react';
+import { Heart } from 'lucide-react';
 
-export default function Footer() {
+const Footer: React.FC = () => {
   return (
-    <footer className="w-full border-t bg-white">
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-4">
-            <h4 className="text-lg font-semibold">About Dropship Platform</h4>
-            <p className="text-sm text-gray-600">
-              A comprehensive dropshipping solution helping merchants discover,
-              manage, and sync products from multiple suppliers to their
-              e-commerce stores.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <h4 className="text-lg font-semibold">Quick Links</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li>
-                <Link to="/about" className="hover:text-gray-900">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link to="/features" className="hover:text-gray-900">
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link to="/pricing" className="hover:text-gray-900">
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact-us" className="hover:text-gray-900">
-                  Contact
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <h4 className="text-lg font-semibold">Resources</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li>
-                <Link to="/blog" className="hover:text-gray-900">
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link to="/documentation" className="hover:text-gray-900">
-                  Documentation
-                </Link>
-              </li>
-              <li>
-                <Link to="/support" className="hover:text-gray-900">
-                  Support
-                </Link>
-              </li>
-              <li>
-                <Link to="/api" className="hover:text-gray-900">
-                  API
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <h4 className="text-lg font-semibold">Connect</h4>
-            <div className="flex space-x-4">
-              <Button variant="ghost" size="icon" asChild>
-                <a
-                  href="https://github.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="GitHub"
-                >
-                  <Github className="h-5 w-5" aria-label="GitHub"/>
-                </a>
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <a
-                  href="https://twitter.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Twitter className="h-5 w-5" />
-                </a>
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <a
-                  href="https://linkedin.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Linkedin className="h-5 w-5" />
-                </a>
-              </Button>
-            </div>
+    <footer className="bg-blue-500/10 py-6 px-4">
+      <div className="container mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+          <p className="text-sm text-gray-600 mb-4 md:mb-0">
+            © {new Date().getFullYear()} DropConnect. Powered by the AI of the New_Zyon with 
+            <Heart className="inline-block mx-1 h-4 w-4 text-rose-500 fill-rose-500" />
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <a href="#" className="text-sm text-gray-600 hover:text-primary hover:underline">Terms of Service</a>
+            <a href="#" className="text-sm text-gray-600 hover:text-primary hover:underline">Privacy Policy</a>
+            <a href="#" className="text-sm text-gray-600 hover:text-primary hover:underline">Contact Us</a>
           </div>
         </div>
-        <div className="mt-8 pt-8 border-t text-center text-sm text-gray-600">
-          © {new Date().getFullYear()} Dropship Platform. All rights reserved.
+        
+        <div className="border-t border-gray-200 pt-4">
+          <p className="text-xs text-gray-500 text-center">
+            We operate on a positive reward system only. 50% of profits support refurbished 
+            laptops and internet for rural children, 40% goes to animal shelters across Romania, 
+            and only 10% is retained for operations.
+          </p>
         </div>
       </div>
     </footer>
   );
-}
+};
+
+export default Footer;

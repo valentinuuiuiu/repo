@@ -1,65 +1,35 @@
-import path from "path";
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
-
-const conditionalPlugins: [string, Record<string, any>][] = [];
+import 'dotenv/config';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.NODE_ENV === "development" ? "/" : process.env.VITE_BASE_PATH || "/",
+  plugins: [react()],
   resolve: {
-    preserveSymlinks: true,
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "fs/promises": path.resolve(__dirname, "./src/mocks/fs-promises-mock.ts"),
-      "fs": path.resolve(__dirname, "./src/mocks/fs-promises-mock.ts"),
-      "chromadb": path.resolve(__dirname, "./src/mocks/chroma-mock.ts"),
-      "chromadb-default-embed": path.resolve(__dirname, "./src/mocks/empty-module.ts"),
+      '@': '/src',
     },
-  },
-  optimizeDeps: {
-    entries: ["src/main.tsx", "src/tempobook/**/*"],
-    exclude: ['ioredis', 'redis', 'fs/promises', 'node:fs/promises', 'chromadb'],
-    esbuildOptions: {
-      target: 'es2020',
-      // Explicitly tell esbuild to ignore fs/promises and chromadb-default-embed
-      plugins: [
-        {
-          name: 'ignore-fs-promises-and-chroma',
-          setup(build) {
-            build.onResolve({ filter: /^fs\/promises$/ }, () => ({
-              path: path.resolve(__dirname, "./src/mocks/fs-promises-mock.ts"),
-            }));
-            build.onResolve({ filter: /^chromadb-default-embed$/ }, () => ({
-              path: path.resolve(__dirname, "./src/mocks/empty-module.ts"),
-              external: true
-            }));
-          },
-        },
-      ],
-    }
-  },
-  plugins: [
-    nodePolyfills({
-      protocolImports: true,
-      exclude: ['fs', 'fs/promises', 'node:fs/promises'],
-    }),
-    react({
-      plugins: conditionalPlugins,
-    }),
-  ],
-  define: {
-    global: 'globalThis',
   },
   server: {
-    // @ts-ignore
-    allowedHosts: true,
-  },
-  build: {
-    rollupOptions: {
-      external: ['redis', 'fs'],
-    },
-    target: 'es2020',
+    port: 5174,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3006', // Updated from 3005 to 3006
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, _req, _res) => {
+            // Disable caching for proxied requests
+            proxyReq.setHeader('Cache-Control', 'no-cache');
+            proxyReq.setHeader('Pragma', 'no-cache');
+          });
+        }
+      }
+    }
   }
 });

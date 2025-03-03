@@ -1,5 +1,12 @@
-import { redisClient } from "../redis";
-import { Product } from "@prisma/client";
+import { prisma } from "../prisma";
+import type { Product, Prisma } from "@prisma/client";
+import { redis } from '@/lib/redis';
+
+// Helper function to determine if browser environment
+const isBrowser = () => typeof window !== 'undefined';
+
+// API endpoint for products (used in browser)
+const API_URL = '/api/products';
 
 export const productService = {
   async list(params: {
@@ -13,6 +20,31 @@ export const productService = {
     page?: number;
     limit?: number;
   }) {
+    // In browser environment, make API request to server
+    if (isBrowser()) {
+      try {
+        // Convert params to query string
+        const queryParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) {
+            queryParams.append(key, String(value));
+          }
+        });
+        
+        const response = await fetch(`${API_URL}?${queryParams.toString()}`);
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching products from API:", error);
+        throw error;
+      }
+    }
+
+    // Server-side code using Prisma
     const {
       search,
       category,
@@ -24,83 +56,201 @@ export const productService = {
       page = 1,
       limit = 20,
     } = params;
+    
+    // Build Prisma where clause
+    const where: Prisma.ProductWhereInput = {
+      AND: [
+        search ? {
+          OR: [
+            { title: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } }
+          ]
+        } : {},
+        category && category !== 'all' ? { category } : {},
+        supplierId ? { supplierId } : {},
+        minPrice ? { price: { gte: minPrice } } : {},
+        maxPrice ? { price: { lte: maxPrice } } : {},
+        minRating ? { supplier: { rating: { gte: minRating } } } : {},
+        inStock !== undefined ? { inventory: inStock ? { gt: 0 } : { lte: 0 } } : {}
+      ]
+    };
 
-    let products = await redisClient.getAllProducts();
-
-    // Apply filters
-    products = products.filter((product) => {
-      if (
-        search &&
-        !(
-          product.title.toLowerCase().includes(search.toLowerCase()) ||
-          product.description.toLowerCase().includes(search.toLowerCase())
-        )
-      )
-        return false;
-
-      if (category && product.category !== category) return false;
-      if (supplierId && product.supplierId !== supplierId) return false;
-      if (minPrice && product.price < minPrice) return false;
-      if (maxPrice && product.price > maxPrice) return false;
-      if (minRating && product.supplier.rating < minRating) return false;
-      if (inStock !== undefined) {
-        if (inStock && product.inventory <= 0) return false;
-        if (!inStock && product.inventory > 0) return false;
+    // Try to get from cache first
+    const cacheKey = `products:${JSON.stringify(params)}`;
+    try {
+      const cachedData = await redis.redisClient.get(cacheKey);
+      if (cachedData) {
+        const parsed = JSON.parse(cachedData);
+        return {
+          products: parsed,
+          pagination: {
+            page,
+            limit,
+            total: parsed.length,
+            pages: Math.ceil(parsed.length / limit),
+          },
+        };
       }
+    } catch (error) {
+      console.error("Redis cache error:", error);
+      // Continue with database query if cache fails
+    }
 
-      return true;
+    try {
+      // Get total count for pagination
+      const total = await prisma.product.count({ where });
+      
+      // Get paginated products
+      let products = await prisma.product.findMany({
+        where,
+        include: {
+          supplier: {
+            select: {
+              name: true,
+              rating: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+      
+      // Add missing properties
+      products = products.map(product => ({
+        ...product,
+        image: product.images && product.images.length > 0 ? product.images[0] : '/default-image.png',
+        supplierRating: product.supplier?.rating || 0,
+        inStock: product.inventory > 0,
+      }));
+      
+      // Cache results in Redis for performance
+      try {
+        await redis.redisClient.set(cacheKey, JSON.stringify(products));
+        await redis.redisClient.expire(cacheKey, 300); // Cache for 5 minutes
+      } catch (cacheError) {
+        console.error("Redis cache set error:", cacheError);
+        // Continue even if caching fails
+      }
+      
+      return {
+        products,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      console.error("Error fetching products from Prisma:", error);
+      throw error;
+    }
+  },
+
+  async create(data: Prisma.ProductCreateInput) {
+    if (isBrowser()) {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      return await response.json();
+    }
+
+    const product = await prisma.product.create({
+      data,
+      include: {
+        supplier: {
+          select: {
+            name: true,
+            rating: true
+          }
+        }
+      }
     });
-
-    // Sort by createdAt
-    products.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-
-    const total = products.length;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-
-    return {
-      products: products.slice(startIndex, endIndex),
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    };
-  },
-
-  async create(data: any) {
-    const id = `${Date.now()}`;
-    const product = {
-      id,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    await redisClient.setProduct(id, product);
+    
+    // Invalidate relevant Redis caches
+    try {
+      await redis.redisClient.del(`products:${JSON.stringify({})}`);
+    } catch (error) {
+      console.error("Redis cache invalidation error:", error);
+    }
+    
     return product;
   },
+  
+  async update(id: string, data: Prisma.ProductUpdateInput) {
+    if (isBrowser()) {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      return await response.json();
+    }
 
-  async update(id: string, data: any) {
-    const product = await redisClient.getProduct(id);
-    if (!product) throw new Error("Product not found");
-
-    const updatedProduct = {
-      ...product,
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    await redisClient.setProduct(id, updatedProduct);
-    return updatedProduct;
+    const product = await prisma.product.update({
+      where: { id },
+      data,
+      include: {
+        supplier: {
+          select: {
+            name: true,
+            rating: true
+          }
+        }
+      }
+    });
+    
+    // Invalidate relevant Redis caches
+    try {
+      await redis.redisClient.del(`products:${JSON.stringify({id})}`);
+    } catch (error) {
+      console.error("Redis cache invalidation error:", error);
+    }
+    
+    return product;
   },
-
+  
   async delete(id: string) {
-    const product = await redisClient.getProduct(id);
-    if (!product) throw new Error("Product not found");
-    await redis.del(`product:${id}`);
+    if (isBrowser()) {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      return await response.json();
+    }
+
+    const product = await prisma.product.delete({
+      where: { id }
+    });
+    
+    // Invalidate relevant Redis caches
+    try {
+      await redis.redisClient.del(`products:${JSON.stringify({id})}`);
+    } catch (error) {
+      console.error("Redis cache invalidation error:", error);
+    }
+    
     return product;
-  },
+  }
 };

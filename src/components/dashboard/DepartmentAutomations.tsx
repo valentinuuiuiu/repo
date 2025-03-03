@@ -44,7 +44,7 @@ function AutomationRuleForm({
   onSubmit: (data: Partial<AutomationRule>) => void
   onCancel: () => void
 }) {
-  const [formData, setFormData] = useState(initialData || {
+  const [formData, setFormData] = useState<Partial<AutomationRule>>(initialData || {
     name: '',
     trigger: { type: 'event', config: {} },
     actions: [],

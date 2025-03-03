@@ -1,208 +1,140 @@
-# AI Agents System for E-commerce Platform
+# AI Library
+
+A comprehensive library for building AI-powered features in your applications.
 
 ## Overview
-This system provides a multi-agent AI architecture for e-commerce operations, featuring:
-- Department-specific AI agents
-- Hierarchical task management
-- Human-in-the-loop review system
-- Vector database integration (ChromaDB)
-- Natural Language Processing capabilities
 
-## Installation
+This library provides a collection of tools and agents that can be used to add AI capabilities to your applications. It includes:
 
-```bash
-# Install required dependencies
-npm install chromadb langchain @xenova/transformers
+- **Tools**: Low-level components that provide specific functionality (e.g., web search, Wikipedia access)
+- **Agents**: Higher-level components that combine tools to perform complex tasks (e.g., research, content generation)
+- **Registry**: A central registry for managing and accessing tools
 
-# Set up environment variables
-echo "VITE_OPENAI_API_KEY=your_key_here" >> .env
-```
-
-## Usage
-
-### 1. UI Interface
-
-Access the AI system through the UI at `/ai/tasks`. The interface provides:
+## Getting Started
 
 ```typescript
-// Submit a new task
-const task = {
-  type: 'product_optimization',
-  departments: ['product', 'marketing'],
-  data: {
-    productId: '123',
-    context: 'Optimize pricing and description'
-  }
-};
+import { toolRegistry, ResearchAgent } from 'lib/ai';
 
-// Review and approve/reject tasks
-const feedback = {
-  comments: 'Looks good',
-  modifications: { price: 29.99 }
-};
+// Using tools directly
+const searchTool = toolRegistry.getTool('ddgsSearch');
+const results = await searchTool.search('climate change solutions');
+
+// Using an agent for higher-level tasks
+const agent = new ResearchAgent();
+const research = await agent.research({
+  topic: 'artificial intelligence ethics',
+  depth: 'detailed'
+});
+
+console.log(research.summary);
+console.log(`Found ${research.facts.length} facts and ${research.sources.length} sources`);
 ```
 
-### 2. Terminal Usage
+## Available Tools
 
-```bash
-# Start the ChromaDB server
-docker run -p 8000:8000 chromadb/chroma
+### DuckDuckGo Search Tool
 
-# Run NLP pipeline
-npm run nlp-process
-```
-
-### 3. Programmatic Usage
+Search the web using DuckDuckGo's API and extract specific types of information from search results.
 
 ```typescript
-import { aiService } from '@/lib/ai';
-import { ChromaClient } from 'chromadb';
+import { toolRegistry } from 'lib/ai';
+import type { DDGSSearchTool } from 'lib/ai';
 
-// Initialize ChromaDB
-const chroma = new ChromaClient();
-const collection = await chroma.createCollection('products');
+const searchTool = toolRegistry.getTool<DDGSSearchTool>('ddgsSearch');
+const results = await searchTool.search('climate change solutions');
 
-// Store product embeddings
-await collection.add({
-  ids: ['product1'],
-  embeddings: productEmbedding,
-  metadatas: [{ title: 'Product 1' }]
-});
-
-// Execute AI task with vector search
-const result = await aiService.executeTask({
-  type: 'product_optimization',
-  departments: ['product', 'marketing'],
-  data: {
-    product: productData,
-    similarProducts: await collection.query({
-      queryEmbeddings: productEmbedding,
-      nResults: 5
-    })
-  }
-});
+// Extract facts from search results
+const facts = searchTool.extractInformation(results, 'facts');
 ```
 
-## Agent Types
+### Wikipedia Search Tool
 
-1. **Product Agent**
-   - Price optimization
-   - Description enhancement
-   - Tag suggestions
-
-2. **Marketing Agent**
-   - Strategy creation
-   - Ad optimization
-   - Campaign analysis
-
-3. **Inventory Agent**
-   - Demand prediction
-   - Stock optimization
-   - Reorder planning
-
-4. **Supplier Agent**
-   - Performance analysis
-   - Reliability prediction
-   - Improvement suggestions
-
-5. **Customer Service Agent**
-   - Inquiry handling
-   - Satisfaction analysis
-   - Support optimization
-
-## Vector Database Integration
+Search Wikipedia and extract structured information from articles.
 
 ```typescript
-// Store product information
-const collection = await chroma.createCollection('products');
+import { toolRegistry } from 'lib/ai';
+import type { WikipediaSearchTool } from 'lib/ai';
 
-// Add embeddings
-await collection.add({
-  ids: productIds,
-  embeddings: embeddings,
-  metadatas: productMetadata
+const wikiTool = toolRegistry.getTool<WikipediaSearchTool>('wikipediaSearch');
+
+// Search for articles
+const searchResults = await wikiTool.search('artificial intelligence');
+
+// Get full article details
+const article = await wikiTool.getArticle('Artificial intelligence', {
+  getSections: true,
+  getCategories: true
 });
 
-// Query similar products
-const similar = await collection.query({
-  queryEmbeddings: targetEmbedding,
-  nResults: 5
+// Get just a summary
+const summary = await wikiTool.getSummary('Machine learning');
+```
+
+## Available Agents
+
+### Research Agent
+
+An agent specialized in gathering and synthesizing information from multiple sources.
+
+```typescript
+import { ResearchAgent } from 'lib/ai';
+
+const agent = new ResearchAgent();
+
+// Basic research
+const basicResults = await agent.research({
+  topic: 'renewable energy',
+  depth: 'basic'
+});
+
+// Comprehensive research with specific information types
+const detailedResults = await agent.research({
+  topic: 'quantum computing',
+  infoTypes: ['facts', 'definitions', 'tutorials'],
+  depth: 'comprehensive',
+  sources: ['both'],
+  maxResults: 15
 });
 ```
 
-## NLP Capabilities
+## Tool Registry
+
+The tool registry provides a central place to access all available tools.
 
 ```typescript
-import { pipeline } from '@xenova/transformers';
+import { toolRegistry } from 'lib/ai';
 
-// Sentiment analysis
-const sentiment = await pipeline('sentiment-analysis');
-const result = await sentiment('Great product!');
+// Get a specific tool
+const searchTool = toolRegistry.getTool('ddgsSearch');
 
-// Text classification
-const classifier = await pipeline('text-classification');
-const category = await classifier('Product description...');
+// Get all tools in a category
+const searchTools = toolRegistry.getToolsByCategory('search');
 
-// Named Entity Recognition
-const ner = await pipeline('ner');
-const entities = await ner('Product features...');
+// Get metadata about a tool
+const metadata = toolRegistry.getToolMetadata('wikipediaSearch');
 ```
 
-## Task Types
+## Examples
 
-```typescript
-type TaskType =
-  | 'product_optimization'
-  | 'product_launch'
-  | 'marketing_strategy'
-  | 'inventory_forecast'
-  | 'supplier_evaluation'
-  | 'customer_inquiry';
-```
+Check out the examples directory for more detailed examples of how to use the library:
 
-## Human-in-the-Loop
+- `aiLibraryDemo.ts`: Demonstrates basic usage of tools and agents
 
-1. Submit task through UI or API
-2. AI agents process and provide recommendations
-3. Human review interface shows results
-4. Approve/reject with feedback
-5. System learns from feedback
+## Extending the Library
 
-## Data Storage
+You can add your own tools and agents to the library:
 
-- Vector embeddings stored in ChromaDB
-- Task history and feedback stored in database
-- Agent insights and recommendations cached
+### Adding a New Tool
 
-## Best Practices
+1. Create a new tool class in the `src/lib/ai/tools` directory
+2. Register the tool in the `toolRegistry.ts` file
+3. Export the tool in the `index.ts` file
 
-1. Always provide comprehensive task data
-2. Include relevant departments for better insights
-3. Review AI recommendations before implementation
-4. Provide detailed feedback for system improvement
-5. Regular retraining of embeddings
+### Adding a New Agent
 
-## Error Handling
+1. Create a new agent class in the `src/lib/ai/agents` directory
+2. Export the agent in the `index.ts` file
 
-```typescript
-try {
-  const result = await aiService.executeTask(task);
-} catch (error) {
-  console.error('Task execution failed:', error);
-  // Implement fallback logic
-}
-```
+## License
 
-## Monitoring
-
-- Agent status monitoring through UI
-- Task success rate tracking
-- Performance metrics dashboard
-- Error logging and alerts
-
-## Security
-
-- API key protection
-- Rate limiting
-- Access control per department
-- Audit logging
+MIT

@@ -17,6 +17,10 @@ export interface Product {
   status: "active" | "draft" | "archived";
   createdAt: Date;
   updatedAt: Date;
+
+  image: string;
+  supplierRating: number;
+  inStock: boolean;
 }
 
 export interface ProductVariant {
@@ -101,7 +105,7 @@ export interface Address {
   postalCode: string;
   country: string;
   phone?: string;
-}
+  }
 
 export type OrderStatus =
   | "pending"
@@ -125,3 +129,16 @@ export type FulfillmentStatus =
   | "partially_fulfilled"
   | "fulfilled"
   | "cancelled";
+
+export interface Invoice {
+  id: string;
+  orderNumber: string;
+  date: string;
+  items: {
+    productId: string;
+    quantity: number;
+    price: number;
+  }[];
+  total: number;
+  status: 'draft' | 'sent' | 'paid' | 'overdue';
+}

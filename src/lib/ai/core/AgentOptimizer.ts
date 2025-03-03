@@ -1,194 +1,119 @@
-import type { Task, AgentInsight } from "../types";
-import { TaskHistory } from "./TaskHistory";
+import { PrismaClient } from '@prisma/client';
+import { TaskHistory } from './TaskHistory';
 
-interface OptimizationMetrics {
-  confidence: number;
-  processingTime: number;
-  validationScore: number;
-  successRate: number;
-}
+const prisma = new PrismaClient();
 
-interface OptimizationStrategy {
-  id: string;
-  parameters: Record<string, any>;
-  metrics: OptimizationMetrics;
+interface OptimizationParameters extends Record<string, any> {
+  batchSize: number;
+  concurrencyLimit: number;
+  timeoutMs: number;
+  retryAttempts: number;
 }
 
 export class AgentOptimizer {
-  private strategies: Map<string, OptimizationStrategy> = new Map();
-  private readonly learningRate = 0.1;
-  private readonly explorationRate = 0.2;
+  private readonly taskHistory: TaskHistory;
+  private optimizationCache: Map<string, OptimizationParameters>;
 
-  constructor(private taskHistory: TaskHistory) {}
-
-  async optimizeAgent(agentName: string, taskType: string): Promise<Record<string, any>> {
-    // Get historical performance data
-    const performance = this.taskHistory.getDepartmentPerformance(agentName);
-    const successfulStrategies = this.taskHistory.getSuccessfulStrategies(taskType);
-    
-    // Calculate optimal parameters
-    const optimalStrategy = await this.findOptimalStrategy(
-      agentName,
-      taskType,
-      performance,
-      successfulStrategies
-    );
-
-    return this.generateOptimizedParameters(optimalStrategy);
+  constructor() {
+    this.taskHistory = new TaskHistory();
+    this.optimizationCache = new Map();
   }
 
-  private async findOptimalStrategy(
-    agentName: string,
-    taskType: string,
-    performance: { successRate: number; averageValidationScore: number },
-    successfulStrategies: { strategy: string; successRate: number }[]
-  ): Promise<OptimizationStrategy> {
-    // Get existing strategy or create new one
-    const currentStrategy = this.strategies.get(`${agentName}-${taskType}`);
-    
-    if (!currentStrategy || Math.random() < this.explorationRate) {
-      // Explore new strategy
-      return this.exploreNewStrategy(agentName, taskType, successfulStrategies);
-    }
+  async optimizeAgent(agentId: string, taskType: string): Promise<OptimizationParameters> {
+    const cacheKey = `${agentId}:${taskType}`;
+    const cached = this.optimizationCache.get(cacheKey);
+    if (cached) return cached;
 
-    // Exploit current strategy with improvements
-    return this.improveStrategy(currentStrategy, performance);
+    const metrics = await this.taskHistory.getTaskMetrics(24);
+    const agentTasks = await this.taskHistory.getTasksByAgent(agentId, 100);
+    
+    const parameters = this.calculateOptimalParameters(metrics, agentTasks);
+    this.optimizationCache.set(cacheKey, parameters);
+
+    await this.recordOptimization(agentId, taskType, parameters);
+    return parameters;
   }
 
-  private async exploreNewStrategy(
-    agentName: string,
-    taskType: string,
-    successfulStrategies: { strategy: string; successRate: number }[]
-  ): Promise<OptimizationStrategy> {
-    const baseParameters = this.getBaseParameters(taskType);
-    
-    // Incorporate successful strategies
-    const topStrategy = successfulStrategies[0];
-    if (topStrategy) {
-      const strategyParams = this.extractStrategyParameters(topStrategy.strategy);
-      Object.assign(baseParameters, strategyParams);
-    }
+  private calculateOptimalParameters(
+    metrics: any,
+    recentTasks: any[]
+  ): OptimizationParameters {
+    const avgCompletionTime = metrics.averageCompletionTime;
+    const failureRate = metrics.failureRate;
 
-    const newStrategy: OptimizationStrategy = {
-      id: `${agentName}-${taskType}-${Date.now()}`,
-      parameters: baseParameters,
-      metrics: {
-        confidence: 0.5,
-        processingTime: 0,
-        validationScore: 0,
-        successRate: 0
-      }
-    };
+    // Adjust batch size based on completion time
+    const batchSize = this.calculateOptimalBatchSize(avgCompletionTime);
 
-    this.strategies.set(`${agentName}-${taskType}`, newStrategy);
-    return newStrategy;
-  }
+    // Adjust concurrency based on failure rate
+    const concurrencyLimit = this.calculateOptimalConcurrency(failureRate);
 
-  private improveStrategy(
-    strategy: OptimizationStrategy,
-    performance: { successRate: number; averageValidationScore: number }
-  ): OptimizationStrategy {
-    const updatedParameters = { ...strategy.parameters };
-    
-    // Adjust parameters based on performance
-    if (performance.successRate < 0.7) {
-      updatedParameters.maxRetries = Math.min((updatedParameters.maxRetries || 3) + 1, 5);
-      updatedParameters.confidence_threshold = Math.max(
-        (updatedParameters.confidence_threshold || 0.7) - this.learningRate,
-        0.5
-      );
-    }
-    
-    if (performance.averageValidationScore < 0.8) {
-      updatedParameters.validation_strictness = Math.min(
-        (updatedParameters.validation_strictness || 1) + this.learningRate,
-        1.5
-      );
-    }
+    // Adjust timeout based on completion time distribution
+    const timeoutMs = this.calculateOptimalTimeout(avgCompletionTime);
+
+    // Adjust retry attempts based on failure patterns
+    const retryAttempts = this.calculateOptimalRetries(failureRate);
 
     return {
-      ...strategy,
-      parameters: updatedParameters,
-      metrics: {
-        ...strategy.metrics,
-        successRate: performance.successRate,
-        validationScore: performance.averageValidationScore
-      }
+      batchSize,
+      concurrencyLimit,
+      timeoutMs,
+      retryAttempts
     };
   }
 
-  private getBaseParameters(taskType: string): Record<string, any> {
-    const baseParams = {
-      maxRetries: 3,
-      confidence_threshold: 0.7,
-      validation_strictness: 1.0,
-      processing_timeout: 30000
-    };
+  private calculateOptimalBatchSize(avgCompletionTime: number): number {
+    // Start with a baseline of 10
+    let batchSize = 10;
 
-    // Customize parameters based on task type
-    switch (taskType) {
-      case 'product_optimization':
-        return {
-          ...baseParams,
-          market_analysis_depth: 0.8,
-          competitor_analysis_enabled: true
-        };
-      case 'marketing_strategy':
-        return {
-          ...baseParams,
-          trend_analysis_enabled: true,
-          audience_segmentation_depth: 0.7
-        };
-      case 'inventory_forecast':
-        return {
-          ...baseParams,
-          forecast_window_days: 30,
-          seasonal_adjustment_enabled: true
-        };
-      default:
-        return baseParams;
+    // Reduce batch size for slower completion times
+    if (avgCompletionTime > 5000) { // 5 seconds
+      batchSize = 5;
+    } else if (avgCompletionTime < 1000) { // 1 second
+      batchSize = 20;
+    }
+
+    return batchSize;
+  }
+
+  private calculateOptimalConcurrency(failureRate: number): number {
+    // Base concurrency on failure rate
+    if (failureRate > 10) {
+      return 1; // Sequential execution for high failure rates
+    } else if (failureRate > 5) {
+      return 2;
+    } else {
+      return 3;
     }
   }
 
-  private extractStrategyParameters(strategy: string): Record<string, any> {
-    // Parse strategy string to extract parameters
-    const params: Record<string, any> = {};
-    
-    if (strategy.includes('high-confidence')) {
-      params.confidence_threshold = 0.85;
-    }
-    
-    if (strategy.includes('quick-response')) {
-      params.processing_timeout = 15000;
-    }
-    
-    if (strategy.includes('thorough-validation')) {
-      params.validation_strictness = 1.2;
-    }
-
-    return params;
+  private calculateOptimalTimeout(avgCompletionTime: number): number {
+    // Set timeout to 3x average completion time
+    return Math.max(5000, avgCompletionTime * 3);
   }
 
-  updateStrategyMetrics(
-    agentName: string,
+  private calculateOptimalRetries(failureRate: number): number {
+    // More retries for lower failure rates
+    if (failureRate > 20) {
+      return 1;
+    } else if (failureRate > 10) {
+      return 2;
+    } else {
+      return 3;
+    }
+  }
+
+  private async recordOptimization(
+    agentId: string,
     taskType: string,
-    metrics: Partial<OptimizationMetrics>
-  ) {
-    const key = `${agentName}-${taskType}`;
-    const strategy = this.strategies.get(key);
-    
-    if (strategy) {
-      this.strategies.set(key, {
-        ...strategy,
-        metrics: {
-          ...strategy.metrics,
-          ...metrics
-        }
-      });
-    }
-  }
-
-  private generateOptimizedParameters(strategy: OptimizationStrategy): Record<string, any> {
-    return strategy.parameters;
+    parameters: OptimizationParameters
+  ): Promise<void> {
+    await prisma.optimizationLog.create({
+      data: {
+        agentId,
+        taskType,
+        parameters,
+        timestamp: new Date()
+      }
+    });
   }
 }

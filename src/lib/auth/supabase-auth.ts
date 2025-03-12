@@ -1,6 +1,6 @@
 import { supabase } from "../supabase";
 import { User, Session } from "@supabase/supabase-js";
-import { create } from "zustand";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 interface AuthState {
   user: User | null;
@@ -14,101 +14,158 @@ interface AuthState {
   updatePassword: (password: string) => Promise<void>;
 }
 
-export const useAuth = create<AuthState>((set) => ({
+const initialState: AuthState = {
   user: null,
   session: null,
   loading: true,
   error: null,
-  signIn: async (email: string, password: string) => {
+  signIn: async () => {},
+  signUp: async () => {},
+  signOut: async () => {},
+  resetPassword: async () => {},
+  updatePassword: async () => {}
+};
+
+const AuthContext = createContext<AuthState>(initialState);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [state, setState] = useState<Omit<AuthState, 'signIn' | 'signUp' | 'signOut' | 'resetPassword' | 'updatePassword'>>(
+    {
+      user: null,
+      session: null,
+      loading: true,
+      error: null
+    }
+  );
+
+  const signIn = async (email: string, password: string) => {
     try {
-      set({ loading: true, error: null });
+      setState({ ...state, loading: true, error: null });
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
-      set({ user: data.user, session: data.session, loading: false });
+      setState({ ...state, user: data.user, session: data.session, loading: false });
     } catch (error) {
-      set({ error: error as Error, loading: false });
+      setState({ ...state, error: error as Error, loading: false });
       throw error;
     }
-  },
-  signUp: async (email: string, password: string) => {
+  };
+
+  const signUp = async (email: string, password: string) => {
     try {
-      set({ loading: true, error: null });
+      setState({ ...state, loading: true, error: null });
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
       if (error) throw error;
-      set({ user: data.user, session: data.session, loading: false });
+      setState({ ...state, user: data.user, session: data.session, loading: false });
     } catch (error) {
-      set({ error: error as Error, loading: false });
+      setState({ ...state, error: error as Error, loading: false });
       throw error;
     }
-  },
-  signOut: async () => {
+  };
+
+  const signOut = async () => {
     try {
-      set({ loading: true, error: null });
+      setState({ ...state, loading: true, error: null });
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      set({ user: null, session: null, loading: false });
+      setState({ ...state, user: null, session: null, loading: false });
     } catch (error) {
-      set({ error: error as Error, loading: false });
+      setState({ ...state, error: error as Error, loading: false });
       throw error;
     }
-  },
-  resetPassword: async (email: string) => {
+  };
+
+  const resetPassword = async (email: string) => {
     try {
-      set({ loading: true, error: null });
+      setState({ ...state, loading: true, error: null });
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      set({ loading: false });
+      setState({ ...state, loading: false });
     } catch (error) {
-      set({ error: error as Error, loading: false });
+      setState({ ...state, error: error as Error, loading: false });
       throw error;
     }
-  },
-  updatePassword: async (password: string) => {
+  };
+
+  const updatePassword = async (password: string) => {
     try {
-      set({ loading: true, error: null });
+      setState({ ...state, loading: true, error: null });
       const { error } = await supabase.auth.updateUser({
         password,
       });
       if (error) throw error;
-      set({ loading: false });
+      setState({ ...state, loading: false });
     } catch (error) {
-      set({ error: error as Error, loading: false });
+      setState({ ...state, error: error as Error, loading: false });
       throw error;
     }
-  },
-}));
+  };
 
-// Initialize auth state
+  useEffect(() => {
+    const initAuth = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        setState({ ...state, error, loading: false });
+        return;
+      }
+
+      if (data.session) {
+        setState({
+          ...state,
+          user: data.session.user,
+          session: data.session,
+          loading: false,
+        });
+      } else {
+        setState({ ...state, loading: false });
+      }
+
+      // Set up auth state change listener
+      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        setState({
+          ...state,
+          user: session?.user || null,
+          session,
+        });
+      });
+
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
+    };
+
+    initAuth();
+  }, []);
+
+  const value = {
+    ...state,
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+    updatePassword
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+// For backward compatibility
 export const initAuth = async () => {
-  const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    useAuth.setState({ error, loading: false });
-    return;
-  }
-
-  if (data.session) {
-    useAuth.setState({
-      user: data.session.user,
-      session: data.session,
-      loading: false,
-    });
-  } else {
-    useAuth.setState({ loading: false });
-  }
-
-  // Set up auth state change listener
-  supabase.auth.onAuthStateChange((event, session) => {
-    useAuth.setState({
-      user: session?.user || null,
-      session,
-    });
-  });
+  // This function is kept for compatibility but doesn't need to do anything
+  // as initialization happens in the AuthProvider
 };

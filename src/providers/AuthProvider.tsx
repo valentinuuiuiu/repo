@@ -1,17 +1,16 @@
-import { ReactNode, useEffect } from "react";
-import { initAuth, useAuth } from "@/lib/auth/supabase-auth";
+import { ReactNode } from "react";
+import {
+  AuthProvider as SupabaseAuthProvider,
+  useAuth,
+} from "@/lib/auth/supabase-auth";
 import { Loader2 } from "lucide-react";
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+function AuthProviderContent({ children }: AuthProviderProps) {
   const { loading } = useAuth();
-
-  useEffect(() => {
-    initAuth();
-  }, []);
 
   if (loading) {
     return (
@@ -22,4 +21,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   return <>{children}</>;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  return (
+    <SupabaseAuthProvider>
+      <AuthProviderContent>{children}</AuthProviderContent>
+    </SupabaseAuthProvider>
+  );
 }

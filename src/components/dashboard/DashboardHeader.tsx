@@ -1,5 +1,5 @@
 import React from "react";
-import { Bell, Search, Settings, User } from "lucide-react";
+import { Bell, Search, Settings, User, LogOut } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import {
@@ -17,6 +17,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { useAuth } from "@/lib/auth/supabase-auth";
+import { useNavigate } from "react-router-dom";
+import { toast } from "../ui/use-toast";
 
 interface DashboardHeaderProps {
   userAvatar?: string;
@@ -27,10 +30,35 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({
   userAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
-  userName = "John Doe",
+  userName,
   notificationCount = 3,
   onSearch = () => {},
 }: DashboardHeaderProps) => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  // Use the user's email from auth if available
+  const displayName =
+    userName || (user?.email ? user.email.split("@")[0] : "Guest");
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast({
+        title: "Logout failed",
+        description: "An error occurred during logout",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <header className="w-full h-[72px] px-6 border-b bg-white flex items-center justify-between">
       {/* Logo */}
@@ -100,22 +128,31 @@ const DashboardHeader = ({
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={userAvatar} alt={userName} />
+                <AvatarImage src={userAvatar} alt={displayName} />
                 <AvatarFallback>
-                  <User className="h-4 w-4" />
+                  {displayName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden md:inline">{userName}</span>
+              <span className="hidden md:inline">{displayName}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Billing</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/checkout")}>
+              Billing
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Log out</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

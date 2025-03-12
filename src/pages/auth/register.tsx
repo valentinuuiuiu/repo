@@ -15,29 +15,39 @@ import { useAuth } from "@/lib/auth/supabase-auth";
 import { toast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 
-export default function Login() {
+export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signUp } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure your passwords match",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await signIn(email, password);
+      await signUp(email, password);
       toast({
-        title: "Login successful",
-        description: "Welcome back to the Dropship Platform",
+        title: "Registration successful",
+        description: "Please check your email to confirm your account",
       });
-      navigate("/");
+      navigate("/login");
     } catch (error: any) {
-      console.error("Login failed:", error);
+      console.error("Registration failed:", error);
       toast({
-        title: "Login failed",
-        description:
-          error.message || "Please check your credentials and try again",
+        title: "Registration failed",
+        description: error.message || "An error occurred during registration",
         variant: "destructive",
       });
     } finally {
@@ -49,13 +59,15 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <Card className="w-[400px]">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Login</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Create an account
+          </CardTitle>
           <CardDescription>
-            Enter your credentials to access your account
+            Enter your details to create your account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -69,15 +81,7 @@ export default function Login() {
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-primary hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -88,23 +92,35 @@ export default function Login() {
                 disabled={isLoading}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Logging in...
+                  Creating account...
                 </>
               ) : (
-                "Sign In"
+                "Sign Up"
               )}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center">
           <div className="text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-primary hover:underline">
-              Sign up
+            Already have an account?{" "}
+            <Link to="/login" className="text-primary hover:underline">
+              Sign in
             </Link>
           </div>
         </CardFooter>

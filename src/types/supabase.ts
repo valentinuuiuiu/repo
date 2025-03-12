@@ -9,13 +9,422 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      addresses: {
+        Row: {
+          address1: string
+          address2: string | null
+          city: string
+          company: string | null
+          country: string
+          created_at: string | null
+          customer_id: string | null
+          first_name: string
+          id: string
+          last_name: string
+          phone: string | null
+          postal_code: string
+          state: string
+          updated_at: string | null
+        }
+        Insert: {
+          address1: string
+          address2?: string | null
+          city: string
+          company?: string | null
+          country: string
+          created_at?: string | null
+          customer_id?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          phone?: string | null
+          postal_code: string
+          state: string
+          updated_at?: string | null
+        }
+        Update: {
+          address1?: string
+          address2?: string | null
+          city?: string
+          company?: string | null
+          country?: string
+          created_at?: string | null
+          customer_id?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone?: string | null
+          postal_code?: string
+          state?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addresses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string | null
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          cost: number
+          created_at: string | null
+          id: string
+          order_id: string
+          price: number
+          product_id: string
+          profit: number | null
+          quantity: number
+          updated_at: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          cost: number
+          created_at?: string | null
+          id?: string
+          order_id: string
+          price: number
+          product_id: string
+          profit?: number | null
+          quantity: number
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          cost?: number
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          price?: number
+          product_id?: string
+          profit?: number | null
+          quantity?: number
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          billing_address_id: string | null
+          created_at: string | null
+          customer_id: string
+          fulfillment_status: string
+          id: string
+          notes: string | null
+          order_number: string
+          payment_status: string
+          shipping: number
+          shipping_address_id: string | null
+          status: string
+          subtotal: number
+          supplier_id: string | null
+          tax: number
+          total: number
+          tracking_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          billing_address_id?: string | null
+          created_at?: string | null
+          customer_id: string
+          fulfillment_status?: string
+          id?: string
+          notes?: string | null
+          order_number: string
+          payment_status?: string
+          shipping?: number
+          shipping_address_id?: string | null
+          status?: string
+          subtotal: number
+          supplier_id?: string | null
+          tax?: number
+          total: number
+          tracking_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          billing_address_id?: string | null
+          created_at?: string | null
+          customer_id?: string
+          fulfillment_status?: string
+          id?: string
+          notes?: string | null
+          order_number?: string
+          payment_status?: string
+          shipping?: number
+          shipping_address_id?: string | null
+          status?: string
+          subtotal?: number
+          supplier_id?: string | null
+          tax?: number
+          total?: number
+          tracking_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_billing_address_id_fkey"
+            columns: ["billing_address_id"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_shipping_address_id_fkey"
+            columns: ["shipping_address_id"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_variants: {
+        Row: {
+          compare_at_price: number | null
+          cost_price: number
+          created_at: string | null
+          id: string
+          inventory: number
+          options: Json
+          price: number
+          product_id: string
+          sku: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          compare_at_price?: number | null
+          cost_price: number
+          created_at?: string | null
+          id?: string
+          inventory?: number
+          options?: Json
+          price: number
+          product_id: string
+          sku?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          compare_at_price?: number | null
+          cost_price?: number
+          created_at?: string | null
+          id?: string
+          inventory?: number
+          options?: Json
+          price?: number
+          product_id?: string
+          sku?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          barcode: string | null
+          category: string | null
+          compare_at_price: number | null
+          cost_price: number
+          created_at: string | null
+          description: string | null
+          id: string
+          images: Json | null
+          inventory: number
+          price: number
+          sku: string | null
+          status: string
+          supplier_id: string
+          tags: Json | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string | null
+          compare_at_price?: number | null
+          cost_price: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          images?: Json | null
+          inventory?: number
+          price: number
+          sku?: string | null
+          status?: string
+          supplier_id: string
+          tags?: Json | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          barcode?: string | null
+          category?: string | null
+          compare_at_price?: number | null
+          cost_price?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          images?: Json | null
+          inventory?: number
+          price?: number
+          sku?: string | null
+          status?: string
+          supplier_id?: string
+          tags?: Json | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          communication_score: number | null
+          created_at: string | null
+          email: string
+          fulfillment_speed: number | null
+          id: string
+          name: string
+          phone: string | null
+          quality_score: number | null
+          rating: number | null
+          status: string
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          communication_score?: number | null
+          created_at?: string | null
+          email: string
+          fulfillment_speed?: number | null
+          id?: string
+          name: string
+          phone?: string | null
+          quality_score?: number | null
+          rating?: number | null
+          status?: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          communication_score?: number | null
+          created_at?: string | null
+          email?: string
+          fulfillment_speed?: number | null
+          id?: string
+          name?: string
+          phone?: string | null
+          quality_score?: number | null
+          rating?: number | null
+          status?: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_sales_by_day: {
+        Args: {
+          start_date: string
+          end_date: string
+        }
+        Returns: {
+          date: string
+          order_count: number
+          total_sales: number
+          total_profit: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

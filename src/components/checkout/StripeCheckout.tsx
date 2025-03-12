@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -11,6 +10,7 @@ import {
 } from "../ui/card";
 import { Loader2 } from "lucide-react";
 import { toast } from "../ui/use-toast";
+import { Input } from "../ui/input";
 
 interface StripeCheckoutProps {
   amount: number;
@@ -25,36 +25,19 @@ export function StripeCheckout({
   onSuccess,
   onCancel,
 }: StripeCheckoutProps) {
-  const stripe = useStripe();
-  const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
+  const [expiry, setExpiry] = useState("12/25");
+  const [cvc, setCvc] = useState("123");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
 
     setIsProcessing(true);
     setError(null);
 
     try {
-      // Create payment method
-      const { error: paymentMethodError, paymentMethod } =
-        await stripe.createPaymentMethod({
-          type: "card",
-          card: elements.getElement(CardElement)!,
-        });
-
-      if (paymentMethodError) {
-        throw new Error(paymentMethodError.message);
-      }
-
-      // In a real application, you would call your backend API to create a payment intent
-      // For demo purposes, we'll simulate a successful payment
-
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
@@ -64,12 +47,12 @@ export function StripeCheckout({
         amount: amount,
         status: "succeeded",
         created: Date.now(),
-        payment_method: paymentMethod.id,
+        payment_method: "mock_payment_method",
       };
 
       toast({
         title: "Payment Successful",
-        description: `Your payment of $${(amount / 100).toFixed(2)} has been processed successfully.`,
+        description: `Your payment of ${(amount / 100).toFixed(2)} has been processed successfully.`,
       });
 
       onSuccess?.(mockPaymentIntent);
@@ -106,23 +89,37 @@ export function StripeCheckout({
               <label className="block text-sm font-medium mb-2">
                 Card Information
               </label>
-              <div className="p-4 border rounded-md">
-                <CardElement
-                  options={{
-                    style: {
-                      base: {
-                        fontSize: "16px",
-                        color: "#424770",
-                        "::placeholder": {
-                          color: "#aab7c4",
-                        },
-                      },
-                      invalid: {
-                        color: "#9e2146",
-                      },
-                    },
-                  }}
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-muted-foreground">
+                    Card Number
+                  </label>
+                  <Input
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(e.target.value)}
+                    placeholder="4242 4242 4242 4242"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-muted-foreground">
+                      Expiry Date
+                    </label>
+                    <Input
+                      value={expiry}
+                      onChange={(e) => setExpiry(e.target.value)}
+                      placeholder="MM/YY"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground">CVC</label>
+                    <Input
+                      value={cvc}
+                      onChange={(e) => setCvc(e.target.value)}
+                      placeholder="123"
+                    />
+                  </div>
+                </div>
               </div>
               <div className="mt-2 text-xs text-muted-foreground">
                 Test Card: 4242 4242 4242 4242, Exp: Any future date, CVC: Any 3
@@ -138,14 +135,14 @@ export function StripeCheckout({
         <Button variant="outline" onClick={onCancel} disabled={isProcessing}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={!stripe || isProcessing}>
+        <Button onClick={handleSubmit} disabled={isProcessing}>
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Processing...
             </>
           ) : (
-            `Pay $${(amount / 100).toFixed(2)}`
+            `Pay ${(amount / 100).toFixed(2)}`
           )}
         </Button>
       </CardFooter>

@@ -1,10 +1,6 @@
 import { ReactNode } from "react";
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 
-// Initialize Stripe with the public key from environment variables
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || "");
-
+// Mock StripeProvider until @stripe/react-stripe-js is installed
 export function StripeProvider({ children }: { children: ReactNode }) {
-  return <Elements stripe={stripePromise}>{children}</Elements>;
+  return <>{children}</>;
 }

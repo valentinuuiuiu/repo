@@ -1,59 +1,32 @@
-import OpenAI from "openai";
-
 export interface AgentConfig {
   name: string;
   description: string;
 }
 
+type ChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
 export abstract class BaseAgent {
-  protected openai: OpenAI;
   protected config: AgentConfig;
-  private useMockResponses: boolean = false;
 
   constructor(config: AgentConfig) {
     this.config = config;
-    this.openai = new OpenAI({
-      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-      dangerouslyAllowBrowser: true,
-    });
-
-    // Check if we should use mock responses (when API key is not valid)
-    this.useMockResponses =
-      !import.meta.env.VITE_OPENAI_API_KEY ||
-      import.meta.env.VITE_OPENAI_API_KEY.includes("XXXXX");
   }
 
-  protected async chat(
-    messages: Array<OpenAI.Chat.ChatCompletionMessageParam>,
-  ) {
+  protected async chat(messages: Array<ChatMessage>) {
     try {
       console.log(`Agent ${this.config.name} processing request...`);
-
-      // Use real API if we have a valid key, otherwise use mock responses
-      if (!this.useMockResponses) {
-        const response = await this.openai.chat.completions.create({
-          model: import.meta.env.VITE_OPENAI_MODEL || "gpt-4o-mini",
-          messages,
-          response_format: { type: "json_object" },
-        });
-
-        console.log(`Agent ${this.config.name} received response from OpenAI`);
-        return response.choices[0].message.content;
-      } else {
-        console.log(`Agent ${this.config.name} using mock response`);
-        return this.generateMockResponse(messages);
-      }
+      console.log(`Using mock response for ${this.config.name}`);
+      return this.generateMockResponse(messages);
     } catch (error) {
       console.error(`Agent ${this.config.name} chat error:`, error);
-      // Fallback to mock responses if API call fails
-      console.log(`Falling back to mock response due to API error`);
       return this.generateMockResponse(messages);
     }
   }
 
-  private generateMockResponse(
-    messages: Array<OpenAI.Chat.ChatCompletionMessageParam>,
-  ): string {
+  private generateMockResponse(messages: Array<ChatMessage>): string {
     const lastMessage = messages[messages.length - 1].content as string;
     const agentType = this.config.name;
 
@@ -127,7 +100,7 @@ export abstract class BaseAgent {
       name: this.config.name,
       description: this.config.description,
       status: "active",
-      usingMockResponses: this.useMockResponses,
+      usingMockResponses: true,
     };
   }
 }

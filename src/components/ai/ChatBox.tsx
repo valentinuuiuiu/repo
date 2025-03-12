@@ -11,7 +11,6 @@ import { Input } from "../ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { ScrollArea } from "../ui/scroll-area";
 import { Loader2, Send, Bot, User } from "lucide-react";
-import OpenAI from "openai";
 
 interface Message {
   role: "user" | "assistant";
@@ -59,51 +58,11 @@ export function ChatBox() {
     setIsLoading(true);
 
     try {
-      // Prepare conversation history for OpenAI
-      const conversationHistory = messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      conversationHistory.push({
-        role: "user" as const,
-        content: input,
-      });
-
-      // Call OpenAI API
-      const openai = new OpenAI({
-        apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-        dangerouslyAllowBrowser: true,
-      });
-
-      let assistantResponse = "";
-
-      try {
-        const response = await openai.chat.completions.create({
-          model: import.meta.env.VITE_OPENAI_MODEL || "gpt-4o-mini",
-          messages:
-            conversationHistory as OpenAI.Chat.ChatCompletionMessageParam[],
-        });
-
-        assistantResponse =
-          response.choices[0].message.content ||
-          "I'm sorry, I couldn't process that request.";
-      } catch (error) {
-        console.error("Error calling OpenAI:", error);
-        // Fallback responses if API fails
-        const fallbackResponses = [
-          "I can help you find the best suppliers for your products.",
-          "Would you like me to analyze your current product pricing strategy?",
-          "I can suggest ways to optimize your inventory management.",
-          "Let me help you create a marketing strategy for your dropshipping business.",
-          "I can provide insights on trending products in your niche.",
-        ];
-        assistantResponse =
-          "I'm currently experiencing connection issues, but I can still help you with dropshipping. " +
-          fallbackResponses[
-            Math.floor(Math.random() * fallbackResponses.length)
-          ];
-      }
+      // Generate mock response based on input
+      let assistantResponse = generateMockResponse(input);
 
       // Add assistant response
       const assistantMessage: Message = {
@@ -125,6 +84,24 @@ export function ChatBox() {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const generateMockResponse = (userInput: string): string => {
+    const input = userInput.toLowerCase();
+
+    if (input.includes("product") && input.includes("trend")) {
+      return "Based on current market analysis, trending products include wireless earbuds, smart home devices, and eco-friendly water bottles. The wireless earbuds market is growing at 15% annually with average margins of 45-60%.";
+    } else if (input.includes("supplier") || input.includes("vendor")) {
+      return "I recommend evaluating suppliers based on reliability, product quality, and shipping times. Top-rated suppliers in electronics include TechSource Pro (4.8/5) and ElectroWholesale (4.7/5). Would you like me to analyze specific supplier metrics?";
+    } else if (input.includes("price") || input.includes("pricing")) {
+      return "For optimal pricing strategy, I suggest a 40-60% markup from your cost price, while staying competitive with market rates. Consider dynamic pricing for seasonal products and bundle pricing for related items to increase average order value.";
+    } else if (input.includes("marketing") || input.includes("advertis")) {
+      return "Effective marketing strategies for dropshipping include targeted social media ads, influencer partnerships, and email marketing. For your product category, Instagram and TikTok typically yield the highest ROI with conversion rates around 3.2%.";
+    } else if (input.includes("inventory") || input.includes("stock")) {
+      return "To optimize inventory management, maintain 30-45 days of stock for best-selling items and set up automated reordering at 25% stock level. This balances carrying costs with stockout risks. Would you like me to create an inventory forecast model?";
+    } else {
+      return "I can help you with product selection, supplier evaluation, pricing strategies, marketing plans, and inventory management for your dropshipping business. What specific aspect would you like assistance with?";
     }
   };
 

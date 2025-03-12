@@ -6,6 +6,8 @@ import Analytics from "./pages/dashboard/analytics";
 import Suppliers from "./pages/dashboard/suppliers";
 import AdminDashboard from "./pages/admin/dashboard";
 import AITasks from "./pages/ai/tasks";
+import AIChat from "./pages/ai/chat";
+import CheckoutPage from "./pages/checkout";
 
 export const router = createBrowserRouter([
   {
@@ -39,5 +41,13 @@ export const router = createBrowserRouter([
   {
     path: "/ai/tasks",
     element: <AITasks />,
+  },
+  {
+    path: "/ai/chat",
+    element: <AIChat />,
+  },
+  {
+    path: "/checkout",
+    element: <CheckoutPage />,
   },
 ]);

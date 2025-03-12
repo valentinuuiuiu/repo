@@ -9,6 +9,7 @@ import {
   Package,
   Users,
   HelpCircle,
+  Bot,
 } from "lucide-react";
 import {
   Tooltip,
@@ -45,8 +46,13 @@ const DashboardSidebar = ({
     { icon: <Settings size={20} />, label: "Settings", href: "/settings" },
     {
       icon: <HelpCircle size={20} />,
-      label: "AI Assistant",
+      label: "AI Tasks",
       href: "/ai/tasks",
+    },
+    {
+      icon: <Bot size={20} />,
+      label: "AI Chat",
+      href: "/ai/chat",
     },
   ],
   collapsed = false,

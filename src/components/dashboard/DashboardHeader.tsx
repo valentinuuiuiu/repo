@@ -81,6 +81,18 @@ const DashboardHeader = ({
               <p>Settings</p>
             </TooltipContent>
           </Tooltip>
+
+          {/* Upgrade */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="default" size="sm" asChild>
+                <a href="/checkout">Upgrade Plan</a>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Upgrade to Pro</p>
+            </TooltipContent>
+          </Tooltip>
         </TooltipProvider>
 
         {/* User Menu */}

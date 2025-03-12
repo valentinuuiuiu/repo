@@ -8,6 +8,7 @@ export interface AgentConfig {
 export abstract class BaseAgent {
   protected openai: OpenAI;
   protected config: AgentConfig;
+  private useMockResponses: boolean = false;
 
   constructor(config: AgentConfig) {
     this.config = config;
@@ -15,25 +16,38 @@ export abstract class BaseAgent {
       apiKey: import.meta.env.VITE_OPENAI_API_KEY,
       dangerouslyAllowBrowser: true,
     });
+
+    // Check if we should use mock responses (when API key is not valid)
+    this.useMockResponses =
+      !import.meta.env.VITE_OPENAI_API_KEY ||
+      import.meta.env.VITE_OPENAI_API_KEY.includes("XXXXX");
   }
 
   protected async chat(
     messages: Array<OpenAI.Chat.ChatCompletionMessageParam>,
   ) {
     try {
-      // For testing purposes, return mock data instead of making actual API calls
-      // This allows the system to work without an actual OpenAI API key
-      console.log(
-        `Agent ${this.config.name} processing:`,
-        messages[messages.length - 1].content,
-      );
+      console.log(`Agent ${this.config.name} processing request...`);
 
-      // Return a mock response based on the agent type and message content
-      const mockResponse = this.generateMockResponse(messages);
-      return mockResponse;
+      // Use real API if we have a valid key, otherwise use mock responses
+      if (!this.useMockResponses) {
+        const response = await this.openai.chat.completions.create({
+          model: import.meta.env.VITE_OPENAI_MODEL || "gpt-4o-mini",
+          messages,
+          response_format: { type: "json_object" },
+        });
+
+        console.log(`Agent ${this.config.name} received response from OpenAI`);
+        return response.choices[0].message.content;
+      } else {
+        console.log(`Agent ${this.config.name} using mock response`);
+        return this.generateMockResponse(messages);
+      }
     } catch (error) {
       console.error(`Agent ${this.config.name} chat error:`, error);
-      throw error;
+      // Fallback to mock responses if API call fails
+      console.log(`Falling back to mock response due to API error`);
+      return this.generateMockResponse(messages);
     }
   }
 
@@ -113,6 +127,7 @@ export abstract class BaseAgent {
       name: this.config.name,
       description: this.config.description,
       status: "active",
+      usingMockResponses: this.useMockResponses,
     };
   }
 }

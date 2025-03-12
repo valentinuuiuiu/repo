@@ -5,6 +5,7 @@ import Orders from "./pages/dashboard/orders";
 import Analytics from "./pages/dashboard/analytics";
 import Suppliers from "./pages/dashboard/suppliers";
 import AdminDashboard from "./pages/admin/dashboard";
+import AITasks from "./pages/ai/tasks";
 
 export const router = createBrowserRouter([
   {
@@ -34,5 +35,9 @@ export const router = createBrowserRouter([
   {
     path: "/admin",
     element: <AdminDashboard />,
+  },
+  {
+    path: "/ai/tasks",
+    element: <AITasks />,
   },
 ]);

@@ -43,6 +43,11 @@ const DashboardSidebar = ({
     { icon: <BarChart3 size={20} />, label: "Analytics", href: "/analytics" },
     { icon: <Users size={20} />, label: "Suppliers", href: "/suppliers" },
     { icon: <Settings size={20} />, label: "Settings", href: "/settings" },
+    {
+      icon: <HelpCircle size={20} />,
+      label: "AI Assistant",
+      href: "/ai/tasks",
+    },
   ],
   collapsed = false,
   onToggleCollapse = () => {},

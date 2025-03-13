@@ -44,7 +44,7 @@ export function ChatBox() {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim()) {
 
     // Add user message
     const userMessage: Message = {

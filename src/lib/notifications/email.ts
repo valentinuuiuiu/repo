@@ -1,4 +1,5 @@
-import { createTransport } from "nodemailer";
+// Email functionality disabled in client-side only version
+const transporter = null;
 
 const transporter = createTransport({
   // Configure your email service here
@@ -71,8 +72,7 @@ export const sendEmail = async ({
 
   const html = templates[template](data);
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+  console.log("Email sending disabled in client-side version", {
     to,
     subject,
     html,

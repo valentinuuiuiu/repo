@@ -49,3 +49,10 @@ export interface AgentInsight {
   recommendation: any;
   reasoning: string;
 }
+
+export interface AgentStatus {
+  name: string;
+  description: string;
+  status: "active" | "inactive" | "error";
+  usingMockResponses: boolean;
+}

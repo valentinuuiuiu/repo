@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { Button } from "../ui/button";
-import { Star, ShoppingCart, TrendingUp } from "lucide-react";
+import { Star, ShoppingCart, TrendingUp, Eye } from "lucide-react";
 import { Badge } from "../ui/badge";
 import {
   Tooltip,
@@ -11,6 +11,7 @@ import {
 } from "../ui/tooltip";
 
 interface ProductCardProps {
+  id?: string;
   title?: string;
   price?: number;
   image?: string;
@@ -19,14 +20,48 @@ interface ProductCardProps {
   category?: string;
 }
 
-const ProductCard = ({
+const ProductCard: React.FC<ProductCardProps> = ({
+  id = "sample-id",
   title = "Sample Product Name",
   price = 29.99,
-  image = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
+  image = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80",
   supplierRating = 4.5,
   inStock = true,
   category = "Electronics",
-}: ProductCardProps) => {
+}) => {
+  const handleViewDetails = () => {
+    const event = new CustomEvent("toast", {
+      detail: {
+        title: "Product Details",
+        description: `Viewing details for ${title}`,
+        variant: "default",
+      },
+    });
+    document.dispatchEvent(event);
+  };
+
+  const handleAddToStore = () => {
+    const event = new CustomEvent("toast", {
+      detail: {
+        title: "Product Added",
+        description: `${title} has been added to your store!`,
+        variant: "default",
+      },
+    });
+    document.dispatchEvent(event);
+  };
+
+  const handleViewAnalytics = () => {
+    const event = new CustomEvent("toast", {
+      detail: {
+        title: "Analytics",
+        description: `Viewing analytics for ${title}`,
+        variant: "default",
+      },
+    });
+    document.dispatchEvent(event);
+  };
+
   return (
     <Card className="w-[300px] h-[400px] bg-white overflow-hidden hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="p-0">
@@ -59,7 +94,11 @@ const ProductCard = ({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button className="flex-1" variant="default">
+              <Button
+                className="flex-1"
+                variant="default"
+                onClick={handleAddToStore}
+              >
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 Add to Store
               </Button>
@@ -72,7 +111,23 @@ const ProductCard = ({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={handleViewDetails}>
+                <Eye className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>View product details</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleViewAnalytics}
+              >
                 <TrendingUp className="w-4 h-4" />
               </Button>
             </TooltipTrigger>

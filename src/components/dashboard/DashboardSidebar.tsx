@@ -17,6 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { useLocation, Link } from "react-router-dom";
 
 interface SidebarItem {
   icon: React.ReactNode;
@@ -32,12 +33,18 @@ interface DashboardSidebarProps {
 }
 
 const DashboardSidebar = ({
-  items = [
+  items: propItems,
+  collapsed = false,
+  onToggleCollapse = () => {},
+}: DashboardSidebarProps) => {
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  const defaultItems = [
     {
       icon: <LayoutGrid size={20} />,
       label: "Dashboard",
       href: "/",
-      isActive: true,
     },
     { icon: <Package size={20} />, label: "Products", href: "/products" },
     { icon: <ShoppingCart size={20} />, label: "Orders", href: "/orders" },
@@ -54,10 +61,16 @@ const DashboardSidebar = ({
       label: "AI Chat",
       href: "/ai/chat",
     },
-  ],
-  collapsed = false,
-  onToggleCollapse = () => {},
-}: DashboardSidebarProps) => {
+  ];
+
+  // Use provided items or default items
+  const items =
+    propItems ||
+    defaultItems.map((item) => ({
+      ...item,
+      isActive: currentPath === item.href,
+    }));
+
   return (
     <div
       className={cn(
@@ -80,32 +93,35 @@ const DashboardSidebar = ({
       </div>
 
       <nav className="flex-1 p-2 space-y-1">
-        {items.map((item, index) => (
-          <TooltipProvider key={index}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={item.isActive ? "default" : "ghost"}
-                  className={cn(
-                    "w-full justify-start",
-                    collapsed ? "justify-center" : "",
-                  )}
-                  asChild
-                >
-                  <a href={item.href} className="flex items-center">
-                    {item.icon}
-                    {!collapsed && <span className="ml-3">{item.label}</span>}
-                  </a>
-                </Button>
-              </TooltipTrigger>
-              {collapsed && (
-                <TooltipContent side="right">
-                  <p>{item.label}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        ))}
+        {items.map((item, index) => {
+          const isActive = item.isActive || currentPath === item.href;
+          return (
+            <TooltipProvider key={index}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    className={cn(
+                      "w-full justify-start",
+                      collapsed ? "justify-center" : "",
+                    )}
+                    asChild
+                  >
+                    <Link to={item.href} className="flex items-center">
+                      {item.icon}
+                      {!collapsed && <span className="ml-3">{item.label}</span>}
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                {collapsed && (
+                  <TooltipContent side="right">
+                    <p>{item.label}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })}
       </nav>
 
       <div className="p-2 border-t">

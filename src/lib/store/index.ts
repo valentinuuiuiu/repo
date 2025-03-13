@@ -14,13 +14,15 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   const increment = () => setCount(count + 1);
   const decrement = () => setCount(count - 1);
 
-  const value = {
-    count,
-    increment,
-    decrement
-  };
-
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={{
+      count,
+      increment,
+      decrement
+    }}>
+      {children}
+    </StoreContext.Provider>
+  );
 };
 
 export const useStore = () => {

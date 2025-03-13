@@ -1,5 +1,5 @@
 import React from "react";
-import { Bell, Search, Settings, User, LogOut } from "lucide-react";
+import { Bell, Search, Settings, User, LogOut, Home } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import {
@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import { useAuth } from "@/lib/auth/supabase-auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "../ui/use-toast";
 
 interface DashboardHeaderProps {
@@ -59,23 +59,44 @@ const DashboardHeader = ({
     }
   };
 
+  // Function to handle search submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // In a real app, this would trigger a search across the platform
+    if (onSearch) {
+      onSearch(e.currentTarget.querySelector("input")?.value || "");
+    }
+    toast({
+      title: "Search initiated",
+      description: "Searching across product catalog...",
+    });
+  };
+
   return (
     <header className="w-full h-[72px] px-6 border-b bg-white flex items-center justify-between">
       {/* Logo */}
       <div className="flex items-center">
-        <h1 className="text-xl font-bold">Dropship Dashboard</h1>
+        <Link to="/" className="flex items-center gap-2">
+          <Home className="h-5 w-5" />
+          <h1 className="text-xl font-bold">Dropship Dashboard</h1>
+        </Link>
       </div>
 
       {/* Search */}
       <div className="flex-1 max-w-xl mx-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search products, orders, or suppliers..."
-            className="pl-10"
-            onChange={(e) => onSearch(e.target.value)}
-          />
-        </div>
+        <form onSubmit={handleSearchSubmit}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search products, orders, or suppliers..."
+              className="pl-10"
+              onChange={(e) => onSearch(e.target.value)}
+            />
+            <button type="submit" className="sr-only">
+              Search
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Right side actions */}
@@ -101,7 +122,11 @@ const DashboardHeader = ({
           {/* Settings */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/settings")}
+              >
                 <Settings className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
@@ -113,8 +138,12 @@ const DashboardHeader = ({
           {/* Upgrade */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="default" size="sm" asChild>
-                <a href="/checkout">Upgrade Plan</a>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate("/checkout")}
+              >
+                Upgrade Plan
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -140,12 +169,15 @@ const DashboardHeader = ({
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/profile")}>
+              <User className="h-4 w-4 mr-2" />
               Profile
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <Settings className="h-4 w-4 mr-2" />
               Settings
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/checkout")}>
+              <Bell className="h-4 w-4 mr-2" />
               Billing
             </DropdownMenuItem>
             <DropdownMenuSeparator />

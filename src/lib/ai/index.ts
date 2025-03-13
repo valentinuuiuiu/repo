@@ -1,4 +1,5 @@
 import { AgentManager } from "./core/AgentManager";
+import { Task, TaskType } from "./types";
 
 export class AIService {
   public manager: AgentManager;
@@ -7,7 +8,11 @@ export class AIService {
     this.manager = new AgentManager();
   }
 
-  async executeTask(task: { type: string; data: any; departments: string[] }) {
+  async executeTask(task: {
+    type: TaskType | string;
+    data: any;
+    departments: string[];
+  }) {
     console.log(
       "Executing task:",
       task.type,
@@ -15,7 +20,11 @@ export class AIService {
       task.departments,
     );
     try {
-      const result = await this.manager.coordinateTask(task);
+      const result = await this.manager.coordinateTask({
+        type: task.type as TaskType,
+        data: task.data,
+        departments: task.departments,
+      });
       console.log("Task result:", result);
       return result;
     } catch (error) {

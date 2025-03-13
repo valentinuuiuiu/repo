@@ -15,6 +15,7 @@ import { TaskType } from "@/lib/ai/types";
 import { aiService } from "@/lib/ai";
 import { useMockData } from "./MockDataProvider";
 import { toast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
 
 const TASK_TYPES: { value: TaskType; label: string }[] = [
   { value: "product_optimization", label: "Product Optimization" },
@@ -23,6 +24,9 @@ const TASK_TYPES: { value: TaskType; label: string }[] = [
   { value: "inventory_forecast", label: "Inventory Forecast" },
   { value: "supplier_evaluation", label: "Supplier Evaluation" },
   { value: "customer_inquiry", label: "Customer Inquiry" },
+  { value: "product_pricing", label: "Product Pricing" },
+  { value: "supplier_risk_assessment", label: "Supplier Risk Assessment" },
+  { value: "satisfaction_analysis", label: "Customer Satisfaction Analysis" },
 ];
 
 const DEPARTMENTS = [
@@ -33,7 +37,7 @@ const DEPARTMENTS = [
   { value: "customerService", label: "Customer Service" },
 ];
 
-// Sample data templates for different task types
+// Sample data templates for different task types in dropshipping context
 const DATA_TEMPLATES: Record<TaskType, string> = {
   product_optimization: JSON.stringify(
     {
@@ -41,7 +45,12 @@ const DATA_TEMPLATES: Record<TaskType, string> = {
       title: "Wireless Earbuds",
       currentPrice: 79.99,
       costPrice: 32.5,
+      supplierPrice: 45.99,
+      shippingTime: "3-5 days",
       competitorPrices: [69.99, 89.99, 74.99],
+      supplierRating: 4.5,
+      platform: "Shopify",
+      storeCategory: "Electronics",
     },
     null,
     2,
@@ -53,7 +62,12 @@ const DATA_TEMPLATES: Record<TaskType, string> = {
         "Track your fitness with heart rate monitoring and sleep tracking",
       category: "Wearables",
       targetPrice: 89.99,
-      costPrice: 45.99,
+      supplierPrice: 45.99,
+      shippingCost: 5.99,
+      supplier: "TechSupplies Inc",
+      supplierRating: 4.8,
+      estimatedDeliveryTime: "4-7 days",
+      targetPlatforms: ["Shopify", "WooCommerce"],
     },
     null,
     2,
@@ -61,39 +75,260 @@ const DATA_TEMPLATES: Record<TaskType, string> = {
   marketing_strategy: JSON.stringify(
     {
       productId: "prod-123",
-      targetAudience: "Fitness enthusiasts, 25-45 years old",
+      title: "Wireless Earbuds",
+      targetAudience: "Tech enthusiasts, 25-45 years old",
       budget: 5000,
-      channels: ["social media", "email", "influencers"],
+      channels: ["Instagram", "Facebook", "TikTok", "Google Ads"],
+      currentConversionRate: 2.8,
+      averageOrderValue: 85.5,
+      shippingPolicy: "Free shipping on orders over $50",
+      competitorAnalysis: [
+        {
+          name: "TechGadgets",
+          strengths: "Lower prices",
+          weaknesses: "Slower shipping",
+        },
+        {
+          name: "PremiumAudio",
+          strengths: "Brand recognition",
+          weaknesses: "Higher prices",
+        },
+      ],
     },
     null,
     2,
   ),
   inventory_forecast: JSON.stringify(
     {
-      productId: "prod-123",
-      currentStock: 150,
+      product: {
+        productId: "prod-123",
+        title: "Wireless Earbuds",
+        currentStock: 150,
+        supplier: "ElectroTech Wholesale",
+        supplierLeadTime: 10,
+      },
       historicalSales: [120, 145, 135, 160],
-      leadTime: 14,
+      seasonalTrends: {
+        q4: "High demand (+30%)",
+        q1: "Moderate demand",
+        q2: "Lower demand (-15%)",
+        q3: "Moderate demand",
+      },
+      platformSyncStatus: "Connected to Shopify",
+      lowStockThreshold: 50,
     },
     null,
     2,
   ),
   supplier_evaluation: JSON.stringify(
     {
-      supplierId: "sup-456",
-      name: "ElectroTech Wholesale",
-      products: ["Wireless Earbuds", "Smart Watches"],
-      orderHistory: [{ date: "2023-10-15", status: "completed" }],
+      supplier: {
+        supplierId: "sup-456",
+        name: "ElectroTech Wholesale",
+        products: ["Wireless Earbuds", "Smart Watches", "Bluetooth Speakers"],
+        location: "Shenzhen, China",
+        shippingMethods: ["ePacket", "DHL", "FedEx"],
+        minimumOrderQuantity: 1,
+      },
+      orders: [
+        {
+          id: "ord-101",
+          date: "2023-10-15",
+          status: "completed",
+          shippingTime: "4 days",
+        },
+        {
+          id: "ord-102",
+          date: "2023-11-01",
+          status: "completed",
+          shippingTime: "5 days",
+        },
+        {
+          id: "ord-103",
+          date: "2023-11-15",
+          status: "processing",
+          shippingTime: null,
+        },
+      ],
+      competitorSuppliers: [
+        {
+          name: "QuickShip Electronics",
+          rating: 4.3,
+          averageShippingTime: "3-4 days",
+        },
+        {
+          name: "GlobalTech Wholesale",
+          rating: 4.6,
+          averageShippingTime: "5-7 days",
+        },
+      ],
     },
     null,
     2,
   ),
   customer_inquiry: JSON.stringify(
     {
-      customerId: "cust-789",
-      inquiry: "When will my order arrive?",
-      orderId: "ord-101",
-      orderDate: "2023-11-10",
+      inquiry: "When will my order arrive? I placed it 3 days ago.",
+      customer: {
+        customerId: "cust-789",
+        name: "John Smith",
+        email: "john@example.com",
+        orderCount: 3,
+        lifetimeValue: 245.97,
+      },
+      order: {
+        id: "ord-101",
+        date: "2023-11-10",
+        status: "processing",
+        items: ["Wireless Earbuds", "Phone Case"],
+        total: 99.98,
+        supplier: "ElectroTech Wholesale",
+        trackingNumber: null,
+        estimatedDelivery: "Nov 18-22",
+      },
+      platform: "Shopify",
+    },
+    null,
+    2,
+  ),
+  product_pricing: JSON.stringify(
+    {
+      productId: "prod-123",
+      title: "Wireless Earbuds",
+      currentPrice: 79.99,
+      supplierPrice: 32.5,
+      shippingCost: 4.99,
+      platformFees: 3.5,
+      advertisingCostPerSale: 8.25,
+      competitorPrices: [69.99, 89.99, 74.99],
+      targetMargin: 0.4,
+      marketPosition: "mid-range",
+      pricingRules: {
+        minimumMargin: 0.3,
+        roundingStrategy: "0.99",
+      },
+    },
+    null,
+    2,
+  ),
+  supplier_risk_assessment: JSON.stringify(
+    {
+      supplier: {
+        supplierId: "sup-456",
+        name: "ElectroTech Wholesale",
+        rating: 4.2,
+        status: "active",
+        location: "Shenzhen, China",
+        yearsInBusiness: 5,
+        productCategories: ["Electronics", "Mobile Accessories"],
+        exclusivityAgreement: false,
+      },
+      orders: [
+        {
+          date: "2023-10-15",
+          status: "completed",
+          fulfillmentStatus: "on_time",
+          qualityIssues: 0,
+        },
+        {
+          date: "2023-11-01",
+          status: "completed",
+          fulfillmentStatus: "delayed",
+          qualityIssues: 1,
+        },
+        {
+          date: "2023-11-15",
+          status: "processing",
+          fulfillmentStatus: "pending",
+          qualityIssues: 0,
+        },
+      ],
+      alternativeSuppliers: [
+        { name: "QuickShip Electronics", rating: 4.3, productOverlap: "80%" },
+        { name: "GlobalTech Wholesale", rating: 4.6, productOverlap: "65%" },
+      ],
+      seasonalFactors: "Chinese New Year (Jan-Feb) may cause shipping delays",
+    },
+    null,
+    2,
+  ),
+  satisfaction_analysis: JSON.stringify(
+    {
+      customer: {
+        customerId: "cust-789",
+        name: "John Smith",
+        email: "john@example.com",
+        registrationDate: "2023-08-15",
+        totalOrders: 5,
+        totalSpent: 389.95,
+        averageOrderValue: 77.99,
+      },
+      orders: [
+        {
+          id: "ord-101",
+          date: "2023-08-20",
+          status: "completed",
+          deliveryTime: "6 days",
+        },
+        {
+          id: "ord-102",
+          date: "2023-09-15",
+          status: "completed",
+          deliveryTime: "5 days",
+        },
+        {
+          id: "ord-103",
+          date: "2023-10-10",
+          status: "completed",
+          deliveryTime: "7 days",
+        },
+        {
+          id: "ord-104",
+          date: "2023-11-01",
+          status: "completed",
+          deliveryTime: "4 days",
+        },
+        {
+          id: "ord-105",
+          date: "2023-11-20",
+          status: "processing",
+          deliveryTime: null,
+        },
+      ],
+      reviews: [
+        {
+          orderId: "ord-101",
+          text: "Great product but shipping was slower than expected",
+          rating: 4,
+        },
+        {
+          orderId: "ord-102",
+          text: "Excellent quality, would buy again",
+          rating: 5,
+        },
+        {
+          orderId: "ord-103",
+          text: "Product matches description perfectly",
+          rating: 5,
+        },
+        {
+          orderId: "ord-104",
+          text: "Fast shipping this time, very satisfied",
+          rating: 5,
+        },
+      ],
+      customerServiceInteractions: [
+        {
+          date: "2023-08-25",
+          topic: "Shipping delay",
+          resolution: "Provided tracking update",
+        },
+        {
+          date: "2023-10-15",
+          topic: "Product question",
+          resolution: "Answered within 2 hours",
+        },
+      ],
     },
     null,
     2,
@@ -111,12 +346,13 @@ export function TaskSubmission() {
   const handleTaskTypeChange = (value: string) => {
     const newType = value as TaskType;
     setTaskType(newType);
-    setData(DATA_TEMPLATES[newType]);
+    setData(DATA_TEMPLATES[newType] || DATA_TEMPLATES.product_optimization);
 
     // Set default departments based on task type
     switch (newType) {
       case "product_optimization":
       case "product_launch":
+      case "product_pricing":
         setDepartments(["product"]);
         break;
       case "marketing_strategy":
@@ -126,10 +362,15 @@ export function TaskSubmission() {
         setDepartments(["inventory"]);
         break;
       case "supplier_evaluation":
+      case "supplier_risk_assessment":
         setDepartments(["supplier"]);
         break;
       case "customer_inquiry":
+      case "satisfaction_analysis":
         setDepartments(["customerService"]);
+        break;
+      default:
+        setDepartments(["product"]);
         break;
     }
   };
@@ -160,45 +401,15 @@ export function TaskSubmission() {
         return;
       }
 
-      // Create a new task with the mock data
-      const newTask = {
-        id: crypto.randomUUID(),
+      // Use the AI service to process the task
+      const result = await aiService.executeTask({
         type: taskType,
         departments,
         data: parsedData,
-        status: "needs_review" as const,
-        result: {
-          // Mock result based on task type
-          ...(taskType === "product_optimization"
-            ? {
-                recommendedPrice: parsedData.currentPrice * 1.15,
-                pricingStrategy:
-                  "Premium positioning with occasional promotions",
-                marketingRecommendations: [
-                  "Highlight quality",
-                  "Target premium segment",
-                ],
-              }
-            : {}),
-          ...(taskType === "supplier_evaluation"
-            ? {
-                reliabilityScore: 0.92,
-                qualityScore: 4.7,
-                recommendedActions: [
-                  "Negotiate better rates",
-                  "Increase order volume",
-                ],
-              }
-            : {}),
-          analysis: `AI analysis for ${taskType} completed successfully`,
-          recommendation: `Based on the data provided, we recommend proceeding with the ${taskType} strategy`,
-        },
-        created_at: new Date(),
-        updated_at: new Date(),
-      };
+      });
 
       // Add the task to our mock data
-      addTask(newTask);
+      addTask(result);
 
       toast({
         title: "Task Submitted",
@@ -277,7 +488,14 @@ export function TaskSubmission() {
           </div>
 
           <Button type="submit" disabled={loading}>
-            {loading ? "Submitting..." : "Submit Task"}
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Task"
+            )}
           </Button>
         </form>
       </CardContent>

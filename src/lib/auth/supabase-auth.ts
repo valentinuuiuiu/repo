@@ -29,7 +29,7 @@ const initialState: AuthState = {
 const AuthContext = createContext<AuthState>(initialState);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [state, setState] = useState<Omit<AuthState, 'signIn' | 'signUp' | 'signOut' | 'resetPassword' | 'updatePassword'>>(
+  const [state, setState] = useState<Omit<AuthState, keyof Pick<AuthState, 'signIn' | 'signUp' | 'signOut' | 'resetPassword' | 'updatePassword'>>>(
     {
       user: null,
       session: null,
@@ -41,12 +41,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setState({ ...state, loading: true, error: null });
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      setState({ ...state, user: data.user, session: data.session, loading: false });
+      
+      const mockUser = {
+        id: "mock-user-id",
+        email: email,
+        user_metadata: {
+          name: "Demo User",
+          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=demo"
+        },
+        app_metadata: {},
+        aud: "authenticated",
+        created_at: new Date().toISOString()
+      } as User;
+      
+      const mockSession = {
+        access_token: "mock-token",
+        refresh_token: "mock-refresh-token",
+        user: mockUser,
+        expires_at: Date.now() + 3600
+      } as Session;
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setState({ ...state, user: mockUser, session: mockSession, loading: false });
     } catch (error) {
       setState({ ...state, error: error as Error, loading: false });
       throw error;
@@ -56,12 +73,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string) => {
     try {
       setState({ ...state, loading: true, error: null });
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      if (error) throw error;
-      setState({ ...state, user: data.user, session: data.session, loading: false });
+      
+      const mockUser = {
+        id: "mock-user-id",
+        email: email,
+        user_metadata: {
+          name: "New User",
+          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=new"
+        },
+        app_metadata: {},
+        aud: "authenticated",
+        created_at: new Date().toISOString()
+      } as User;
+      
+      const mockSession = {
+        access_token: "mock-token",
+        refresh_token: "mock-refresh-token",
+        user: mockUser,
+        expires_at: Date.now() + 3600
+      } as Session;
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setState({ ...state, user: mockUser, session: mockSession, loading: false });
     } catch (error) {
       setState({ ...state, error: error as Error, loading: false });
       throw error;
@@ -71,8 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       setState({ ...state, loading: true, error: null });
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await new Promise(resolve => setTimeout(resolve, 500));
       setState({ ...state, user: null, session: null, loading: false });
     } catch (error) {
       setState({ ...state, error: error as Error, loading: false });
@@ -83,10 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const resetPassword = async (email: string) => {
     try {
       setState({ ...state, loading: true, error: null });
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
+      await new Promise(resolve => setTimeout(resolve, 500));
       setState({ ...state, loading: false });
     } catch (error) {
       setState({ ...state, error: error as Error, loading: false });
@@ -97,10 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updatePassword = async (password: string) => {
     try {
       setState({ ...state, loading: true, error: null });
-      const { error } = await supabase.auth.updateUser({
-        password,
-      });
-      if (error) throw error;
+      await new Promise(resolve => setTimeout(resolve, 500));
       setState({ ...state, loading: false });
     } catch (error) {
       setState({ ...state, error: error as Error, loading: false });
@@ -109,51 +136,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const initAuth = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        setState({ ...state, error, loading: false });
-        return;
-      }
-
-      if (data.session) {
-        setState({
-          ...state,
-          user: data.session.user,
-          session: data.session,
-          loading: false,
-        });
-      } else {
+    const checkSession = async () => {
+      try {
+        setState({ ...state, loading: true });
+        await new Promise(resolve => setTimeout(resolve, 500));
         setState({ ...state, loading: false });
+      } catch (error) {
+        setState({ ...state, error: error as Error, loading: false });
       }
-
-      // Set up auth state change listener
-      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        setState({
-          ...state,
-          user: session?.user || null,
-          session,
-        });
-      });
-
-      return () => {
-        authListener.subscription.unsubscribe();
-      };
     };
-
-    initAuth();
+    
+    checkSession();
   }, []);
 
-  const value = {
-    ...state,
-    signIn,
-    signUp,
-    signOut,
-    resetPassword,
-    updatePassword
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{
+      ...state,
+      signIn,
+      signUp,
+      signOut,
+      resetPassword,
+      updatePassword
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
@@ -162,10 +169,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-// For backward compatibility
-export const initAuth = async () => {
-  // This function is kept for compatibility but doesn't need to do anything
-  // as initialization happens in the AuthProvider
 };

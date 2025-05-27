@@ -3,6 +3,66 @@ import { WorkflowOrchestrator } from '@/lib/ai/core/WorkflowOrchestrator';
 import { AgentCollaborationManager } from '@/lib/ai/core/AgentCollaborationManager';
 import { standardWorkflows } from '@/lib/ai/workflows/StandardWorkflows';
 
+interface NetworkVisualization {
+  nodes: Array<{
+    id: string;
+    type: string;
+    metadata: Record<string, unknown>;
+  }>;
+  edges: Array<{
+    source: string;
+    target: string;
+    relationship: string;
+  }>;
+}
+
+interface WorkflowInput {
+  [key: string]: unknown;
+}
+
+interface WorkflowResult {
+  status: 'success' | 'failure';
+  output: unknown;
+  metrics?: {
+    duration: number;
+    stepsExecuted: number;
+  };
+}
+
+interface TaskData {
+  [key: string]: unknown;
+  dependencies?: string[];
+  timeout?: number;
+  retryPolicy?: {
+    maxAttempts: number;
+    delay: number;
+  };
+}
+
+interface BottleneckAnalysis {
+  criticalPaths: Array<{
+    workflowId: string;
+    duration: number;
+    steps: number;
+  }>;
+  resourceConstraints: Array<{
+    agentType: string;
+    utilization: number;
+  }>;
+  recommendations: string[];
+}
+
+interface WorkflowDefinition {
+  id: string;
+  name: string;
+  description: string;
+  steps: Array<{
+    action: string;
+    parameters?: Record<string, unknown>;
+  }>;
+  inputSchema?: Record<string, unknown>;
+}
+
 // Singleton instance of the graph orchestrator
 let orchestratorInstance: AgentGraphOrchestrator | null = null;
 let isInitializing = false;
@@ -24,12 +84,11 @@ export const AgentGraphService = {
     
     isInitializing = true;
     
-    initPromise = new Promise(async (resolve) => {
+    initPromise = (async () => {
       orchestratorInstance = new AgentGraphOrchestrator();
       await orchestratorInstance.initialize();
       isInitializing = false;
-      resolve();
-    });
+    })();
     
     return initPromise;
   },
@@ -37,7 +96,7 @@ export const AgentGraphService = {
   /**
    * Get the agent network visualization data
    */
-  async getNetworkVisualization(): Promise<any> {
+  async getNetworkVisualization(): Promise<NetworkVisualization> {
     await this.ensureInitialized();
     return orchestratorInstance!.getAgentNetworkVisualization();
   },
@@ -47,7 +106,7 @@ export const AgentGraphService = {
    * @param workflowId The ID of the workflow to execute
    * @param data Initial data for the workflow
    */
-  async executeWorkflow(workflowId: string, data: any = {}): Promise<any> {
+  async executeWorkflow(workflowId: string, data: WorkflowInput = {}): Promise<WorkflowResult> {
     await this.ensureInitialized();
     
     // Get the workflow definition
@@ -79,7 +138,7 @@ export const AgentGraphService = {
     departments: string[];
     requiredCapabilities: string[];
     priority: 'low' | 'medium' | 'high';
-    data: any;
+    data: TaskData;
   }): Promise<string> {
     await this.ensureInitialized();
     
@@ -110,7 +169,7 @@ export const AgentGraphService = {
   /**
    * Analyze potential bottlenecks in workflows
    */
-  async analyzeWorkflowBottlenecks(): Promise<any> {
+  async analyzeWorkflowBottlenecks(): Promise<BottleneckAnalysis> {
     await this.ensureInitialized();
     return orchestratorInstance!.analyzeWorkflowBottlenecks();
   },
@@ -118,7 +177,7 @@ export const AgentGraphService = {
   /**
    * Get all available workflows
    */
-  getAvailableWorkflows(): any[] {
+  getAvailableWorkflows(): WorkflowDefinition[] {
     return Object.values(standardWorkflows);
   },
   
@@ -126,7 +185,7 @@ export const AgentGraphService = {
    * Get a workflow by ID
    * @param id The workflow ID
    */
-  getWorkflowById(id: string): any {
+  getWorkflowById(id: string): WorkflowDefinition | undefined {
     return Object.values(standardWorkflows).find(wf => wf.id === id);
   },
   

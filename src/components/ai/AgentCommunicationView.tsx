@@ -4,13 +4,13 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AgentCoordinator } from "@/lib/ai/agent-coordinator"
 import ReactFlow, { 
-  Handle, 
-  Position, 
+  Handle,
+  Position,
   MarkerType,
+  Edge,
   useNodesState,
   useEdgesState
 } from 'reactflow'
-import { Edge as FlowEdge } from '@reactflow/core'
 import 'reactflow/dist/style.css'
 
 interface AgentNode {
@@ -136,7 +136,7 @@ export function AgentCommunicationView({ departmentId }: { departmentId: string 
       setMessages(prev => [message, ...prev].slice(0, 100))
       
       if (message.to !== 'all') {
-        setEdges((prev: FlowEdge[]) => [
+        setEdges((prev: Edge[]) => [
           ...prev,
           {
             id: message.id,

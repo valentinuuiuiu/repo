@@ -1,7 +1,7 @@
 import React, { ReactNode, createContext, useContext, useMemo, useState, useCallback } from 'react';
 import { ThemeProvider as MuiThemeProvider, CssBaseline } from '@mui/material';
 import { createTheme, responsiveFontSizes } from '@mui/material/styles';
-import { getDesignTokens } from './theme';
+import { getDesignTokens } from './theme.tsx';
 
 // Create a context for theme mode
 interface ThemeContextType {

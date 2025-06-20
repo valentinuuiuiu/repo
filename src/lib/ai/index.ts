@@ -45,7 +45,7 @@ export const quickStart = `
 `;
 
 // Export default object with all components
-export default await (async () => ({
+export default {
   ...(await Promise.all([
     import('./tools'),
     import('./agents')
@@ -53,5 +53,5 @@ export default await (async () => ({
     tools: tools.default,
     agents: agents.default,
     info: libraryInfo
-  }))
-}))();
+  })))
+};

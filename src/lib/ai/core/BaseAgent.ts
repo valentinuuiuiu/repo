@@ -2,7 +2,7 @@ import type { Task, AgentResponse, AgentMessage } from '../types';
 import { AgentMonitor } from './AgentMonitor';
 import { CircuitBreaker } from './CircuitBreaker';
 import type { AgentType } from '@prisma/client';
-import OpenAI from 'openai';
+import { OpenAI } from 'openai';
 import { EventEmitter } from 'events';
 
 export interface AgentConfig {
@@ -61,7 +61,7 @@ export abstract class BaseAgent {
     this.monitor = new AgentMonitor();
     this.messageHandlers = new Map();
     this.openai = new OpenAI({
-      apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
+      apiKey: process.env.VITE_OPENAI_API_KEY || '',
       dangerouslyAllowBrowser: true
     });
     this.knowledgeBase = new Map();

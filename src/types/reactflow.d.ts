@@ -1,48 +1,48 @@
+import { CSSProperties, ComponentType, FC } from 'react';
+
 declare module 'reactflow' {
-  import React from 'react';
 
   export type Position = 'top' | 'right' | 'bottom' | 'left';
   export type HandleType = 'source' | 'target';
-  export type MarkerType = string;
+  export type MarkerType = { type: string; color?: string };
 
-  export interface Node {
+  export interface NodeProps {
     id: string;
-    type?: string;
     data: any;
+    type?: string;
     position: { x: number; y: number };
     style?: React.CSSProperties;
     className?: string;
     sourcePosition?: Position;
     targetPosition?: Position;
-    hidden?: boolean;
     selected?: boolean;
     dragging?: boolean;
   }
 
-  export interface Edge {
+  export interface EdgeProps {
     id: string;
     source: string;
     target: string;
-    sourceHandle?: string | null;
-    targetHandle?: string | null;
+    sourceHandle?: string;
+    targetHandle?: string;
     label?: string;
     labelStyle?: React.CSSProperties;
     labelShowBg?: boolean;
     labelBgStyle?: React.CSSProperties;
     style?: React.CSSProperties;
     animated?: boolean;
-    hidden?: boolean;
-    markerStart?: MarkerType;
     markerEnd?: MarkerType;
     data?: any;
   }
 
   export interface NodeTypes {
-    [key: string]: React.ComponentType<any>;
+    default: React.ComponentType<NodeProps>;
+    [key: string]: React.ComponentType<NodeProps>;
   }
 
   export interface EdgeTypes {
-    [key: string]: React.ComponentType<any>;
+    default: React.ComponentType<EdgeProps>;
+    [key: string]: React.ComponentType<EdgeProps>;
   }
 
   export const Handle: React.FC<{
@@ -54,18 +54,17 @@ declare module 'reactflow' {
   }>;
 
   export const ReactFlow: React.FC<{
-    nodes: Node[];
-    edges: Edge[];
-    onNodesChange?: (changes: any) => void;
-    onEdgesChange?: (changes: any) => void;
+    nodes: NodeProps[];
+    edges: EdgeProps[];
     nodeTypes?: NodeTypes;
     edgeTypes?: EdgeTypes;
-    defaultEdgeOptions?: Partial<Edge>;
+    defaultEdgeOptions?: Partial<EdgeProps>;
     fitView?: boolean;
-    minZoom?: number;
-    maxZoom?: number;
+    onNodesChange?: (changes: any) => void;
+    onEdgesChange?: (changes: any) => void;
   }>;
 
-  export function useNodesState(initial: Node[]): [Node[], (nodes: Node[]) => void, (changes: any) => void];
-  export function useEdgesState(initial: Edge[]): [Edge[], (edges: Edge[]) => void, (changes: any) => void];
+  export function useNodesState(initial: NodeProps[]): [NodeProps[], (nodes: NodeProps[]) => void];
+  export function useEdgesState(initial: EdgeProps[]): [EdgeProps[], (edges: EdgeProps[]) => void];
+  export function useReactFlow(): any;
 }

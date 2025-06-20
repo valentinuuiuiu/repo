@@ -1,4 +1,4 @@
-export { getDesignTokens } from './theme';
+export { getDesignTokens } from './theme.tsx';
 export { 
   default as ThemeProvider, 
   ThemeContext, 

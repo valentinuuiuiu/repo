@@ -213,7 +213,7 @@ export class DepartmentNotifications extends EventEmitter {
     // Get recent alerts
     const alerts = await redis.zrevrange(this.alertsKey, 0, limit - 1)
     
-    let filtered = alerts
+    const filtered = alerts
       .map(alert => JSON.parse(alert))
       .filter(alert => {
         if (unreadOnly && alert.read) return false

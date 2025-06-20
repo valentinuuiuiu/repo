@@ -1,4 +1,4 @@
-# DropConnect Dropshipping Platform
+You have the full # DropConnect Dropshipping Platform
 
 ## Development Setup
 

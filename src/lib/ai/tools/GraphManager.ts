@@ -120,8 +120,8 @@ export class GraphManager {
     edgeTypes?: string[];
     maxDepth?: number;
   }): { nodes: GraphNode[]; edges: GraphEdge[] } {
-    let resultNodes = new Set<GraphNode>();
-    let resultEdges = new Set<GraphEdge>();
+    const resultNodes = new Set<GraphNode>();
+    const resultEdges = new Set<GraphEdge>();
 
     if (startNodeId) {
       this.traverseGraph(startNodeId, resultNodes, resultEdges, nodeTypes, edgeTypes, maxDepth, 0);

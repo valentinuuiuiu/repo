@@ -213,9 +213,9 @@ export const AgentDashboard: React.FC = () => {
                         {agent.capabilities.slice(0, 2).map(cap => (
                           <div key={cap}>• {cap}</div>
                         ))}
-                        {agent.capabilities.length > 2 && (
+                        {agent.capabilities.length > 2 ? (
                           <div>• {agent.capabilities.length - 2} more...</div>
-                        ))}
+                        ) : null}
                       </div>
                     </Card>
                   ))}
